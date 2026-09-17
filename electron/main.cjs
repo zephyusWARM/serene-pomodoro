@@ -46,9 +46,116 @@ function createWindow() {
     });
 }
 
+let currentTrayStatus = {
+    timeText: '',
+    mode: 'focus',
+    isRunning: false,
+    intentionText: '',
+};
+
+function refreshTrayMenu() {
+    if (!tray) return;
+
+    let tooltip = 'Serene Guardian (靜謐守護者)';
+    if (currentTrayStatus.timeText) {
+        const modeEmoji = currentTrayStatus.mode === 'focus' ? '🍅' : (currentTrayStatus.mode === 'shortBreak' ? '🌿' : '🌙');
+        tooltip = `${modeEmoji} ${currentTrayStatus.timeText} · Serene Guardian`;
+    }
+    if (currentTrayStatus.intentionText) {
+        tooltip += `\n✨ ${currentTrayStatus.intentionText}`;
+    }
+    try {
+        tray.setToolTip(tooltip);
+    } catch (_) {
+        // ignore
+    }
+
+    const modeLabels = {
+        focus: '🍅 專注時段',
+        shortBreak: '🌿 短休息',
+        longBreak: '🌙 長休息',
+    };
+    const currentModeLabel = modeLabels[currentTrayStatus.mode] || '🍅 專注時段';
+
+    const menuItems = [];
+
+    // Current status header
+    if (currentTrayStatus.timeText) {
+        menuItems.push({
+            label: `${currentModeLabel}：${currentTrayStatus.timeText} ${currentTrayStatus.isRunning ? '(計時中)' : '(已暫停)'}`,
+            enabled: false,
+        });
+    }
+
+    if (currentTrayStatus.intentionText) {
+        menuItems.push({
+            label: `✨ 今日心向：${currentTrayStatus.intentionText}`,
+            click: () => {
+                if (mainWindow) {
+                    mainWindow.show();
+                    mainWindow.focus();
+                    mainWindow.webContents.send('open-morning-modal');
+                }
+            }
+        });
+    }
+
+    if (menuItems.length > 0) {
+        menuItems.push({ type: 'separator' });
+    }
+
+    // Quick action: Start / Pause
+    menuItems.push({
+        label: currentTrayStatus.isRunning ? '⏸ 暫停計時' : '▶ 開始計時',
+        click: () => {
+            if (mainWindow) {
+                mainWindow.webContents.send('tray-toggle-timer');
+            }
+        }
+    });
+
+    menuItems.push({
+        label: '↺ 重設計時',
+        click: () => {
+            if (mainWindow) {
+                mainWindow.webContents.send('tray-reset-timer');
+            }
+        }
+    });
+
+    menuItems.push({ type: 'separator' });
+
+    const isWindowVisible = mainWindow && mainWindow.isVisible();
+    menuItems.push({
+        label: isWindowVisible ? '⬇ 隱藏至系統列' : '⬆ 顯示主視窗',
+        click: () => {
+            if (mainWindow) {
+                if (mainWindow.isVisible()) {
+                    mainWindow.hide();
+                } else {
+                    mainWindow.show();
+                    mainWindow.focus();
+                }
+                refreshTrayMenu();
+            }
+        }
+    });
+
+    menuItems.push({ type: 'separator' });
+
+    menuItems.push({
+        label: '完全退出',
+        click: () => {
+            app.isQuiting = true;
+            app.quit();
+        }
+    });
+
+    tray.setContextMenu(Menu.buildFromTemplate(menuItems));
+}
+
 // 建立系統列圖示 (Tray)
 function createTray() {
-    // 使用新複製的 icon.png
     const iconPath = path.join(__dirname, 'icon.png');
     try {
         tray = new Tray(iconPath);
@@ -57,29 +164,31 @@ function createTray() {
     }
 
     if (tray) {
-        tray.setToolTip('Serene Guardian (靜謐守護者)');
-        
-        const contextMenu = Menu.buildFromTemplate([
-            {
-                label: '顯示主視窗',
-                click: () => { if (mainWindow) mainWindow.show(); }
-            },
-            { type: 'separator' },
-            {
-                label: '完全退出',
-                click: () => {
-                    app.isQuiting = true;
-                    app.quit();
-                }
-            }
-        ]);
-        
-        tray.setContextMenu(contextMenu);
+        refreshTrayMenu();
 
-        // 左鍵單擊也顯示主視窗
+        // 左鍵單擊切換/顯示主視窗
         tray.on('click', () => {
             if (mainWindow) {
-                mainWindow.show();
+                if (mainWindow.isVisible()) {
+                    mainWindow.focus();
+                } else {
+                    mainWindow.show();
+                    mainWindow.focus();
+                }
+                refreshTrayMenu();
+            }
+        });
+
+        // 雙擊切換顯示/隱藏
+        tray.on('double-click', () => {
+            if (mainWindow) {
+                if (mainWindow.isVisible()) {
+                    mainWindow.hide();
+                } else {
+                    mainWindow.show();
+                    mainWindow.focus();
+                }
+                refreshTrayMenu();
             }
         });
     }
@@ -183,11 +292,16 @@ function createEyeReminder() {
 
 // 當 Electron 完成初始化時
 app.whenReady().then(() => {
-    // 設定開機自動啟動
-    if (!isDev) {
+    // 設定開機自動啟動（僅在真正打包成安裝版時啟用，避免在開發環境把 node_modules 中的 electron.exe 註冊到 Windows 開機自啟）
+    if (app.isPackaged) {
         app.setLoginItemSettings({
             openAtLogin: true,
             path: app.getPath('exe'),
+        });
+    } else {
+        // 開發環境確保不啟用開機自啟
+        app.setLoginItemSettings({
+            openAtLogin: false,
         });
     }
 
@@ -206,6 +320,9 @@ app.whenReady().then(() => {
             }
             overlayWindow.close();
             overlayWindow = null;
+        }
+        if (mainWindow) {
+            mainWindow.webContents.send('system-resumed');
         }
     });
 
@@ -258,5 +375,14 @@ ipcMain.handle('overlay-action', (event, action) => {
 ipcMain.handle('hide-window', () => {
     if (mainWindow) {
         mainWindow.hide();
+        refreshTrayMenu();
     }
 });
+
+ipcMain.handle('update-tray-status', (event, status) => {
+    if (status && typeof status === 'object') {
+        currentTrayStatus = { ...currentTrayStatus, ...status };
+        refreshTrayMenu();
+    }
+});
+

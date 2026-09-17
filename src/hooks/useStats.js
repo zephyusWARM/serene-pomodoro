@@ -18,22 +18,25 @@ const pruneOldStats = (stats) => {
     return pruned;
 };
 
+const getInitialStats = () => {
+    const today = getLocalToday();
+    const statsStr = localStorage.getItem('zen-garden-stats');
+    if (statsStr) {
+        try {
+            const stats = JSON.parse(statsStr);
+            return stats[today] || 0;
+        } catch {
+            return 0;
+        }
+    }
+    return 0;
+};
+
 const useStats = () => {
-    const [todayFocusCount, setTodayFocusCount] = useState(0);
+    const [todayFocusCount, setTodayFocusCount] = useState(getInitialStats);
 
     const loadStats = useCallback(() => {
-        const today = getLocalToday();
-        const statsStr = localStorage.getItem('zen-garden-stats');
-        if (statsStr) {
-            try {
-                const stats = JSON.parse(statsStr);
-                setTodayFocusCount(stats[today] || 0);
-            } catch (e) {
-                setTodayFocusCount(0);
-            }
-        } else {
-            setTodayFocusCount(0);
-        }
+        setTodayFocusCount(getInitialStats());
     }, []);
 
     const recordFocusSession = useCallback(() => {
@@ -52,7 +55,6 @@ const useStats = () => {
     }, []);
 
     useEffect(() => {
-        loadStats();
         window.addEventListener('zen-garden-updated', loadStats);
         return () => window.removeEventListener('zen-garden-updated', loadStats);
     }, [loadStats]);

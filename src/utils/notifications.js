@@ -1,16 +1,55 @@
-// Notification utility functions
+// Notification and tranquil audio utilities
 
-// Check if running in Electron
 const isElectron = window.electronAPI?.isElectron || false;
 
-// Combined notification handler - triggers overlay in Electron, silent browser notification otherwise
+// Synthesize a soothing Tibetan singing bowl chime via Web Audio API
+export const playZenChime = () => {
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        const ctx = new AudioContextClass();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const now = ctx.currentTime;
+        // Harmonic frequencies of a sacred Tibetan meditation chime
+        const freqs = [528, 792, 1056];
+        const masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(0.25, now);
+        masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.2);
+        masterGain.connect(ctx.destination);
+
+        freqs.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const oscGain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            osc.detune.setValueAtTime(idx * 3.5, now);
+            oscGain.gain.setValueAtTime(1 / (idx + 1.2), now);
+            osc.connect(oscGain);
+            oscGain.connect(masterGain);
+            osc.start(now);
+            osc.stop(now + 3.3);
+        });
+
+        setTimeout(() => {
+            ctx.close().catch(() => {});
+        }, 3600);
+    } catch {
+        // audio context failed or blocked
+    }
+};
+
+// Combined notification handler - triggers chime + overlay in Electron, silent browser notification otherwise
 export const triggerNotification = (mode, skipCount = 0) => {
+    // Play tranquil chime
+    playZenChime();
+
     if (isElectron && window.electronAPI?.showOverlay) {
         window.electronAPI.showOverlay(mode, skipCount);
         return;
     }
 
-    // Fallback: browser notification (silent)
+    // Fallback: browser notification
     if ('Notification' in window && Notification.permission === 'granted') {
         const messages = {
             focus: { title: '✨ 專注時間結束', body: '做得很好！休息一下吧。' },

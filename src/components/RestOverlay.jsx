@@ -13,7 +13,7 @@ const REST_QUOTES = [
  * RestOverlay – Forced fullscreen takeover for 10 seconds.
  * Shows a calming rest screen with a countdown.
  */
-const RestOverlay = ({ visible, onComplete }) => {
+function RestOverlayContent({ onComplete }) {
   const [secondsLeft, setSecondsLeft] = useState(10);
   const [quote] = useState(() =>
     REST_QUOTES[Math.floor(Math.random() * REST_QUOTES.length)]
@@ -21,34 +21,25 @@ const RestOverlay = ({ visible, onComplete }) => {
   const intervalRef = useRef(null);
 
   useEffect(() => {
-    if (visible) {
-      setSecondsLeft(10);
-
-      intervalRef.current = setInterval(() => {
-        setSecondsLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      clearInterval(intervalRef.current);
-      setSecondsLeft(10);
-    }
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     return () => clearInterval(intervalRef.current);
-  }, [visible]);
+  }, []);
 
-  // Trigger onComplete when countdown reaches 0 (outside of setState updater)
+  // Trigger onComplete when countdown reaches 0
   useEffect(() => {
-    if (visible && secondsLeft === 0) {
+    if (secondsLeft === 0) {
       onComplete();
     }
-  }, [visible, secondsLeft, onComplete]);
-
-  if (!visible) return null;
+  }, [secondsLeft, onComplete]);
 
   const progress = ((10 - secondsLeft) / 10) * 100;
 
@@ -83,6 +74,11 @@ const RestOverlay = ({ visible, onComplete }) => {
       </div>
     </div>
   );
+}
+
+const RestOverlay = ({ visible, onComplete }) => {
+  if (!visible) return null;
+  return <RestOverlayContent onComplete={onComplete} />;
 };
 
 export default RestOverlay;

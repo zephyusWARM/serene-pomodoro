@@ -78,7 +78,11 @@ const AmbientPlayer = ({ sound }) => {
       s.gain.gain.linearRampToValueAtTime(0, now + FADE_MS / 1000);
       const prevSrc = s.src;
       s.fadeTimer = setTimeout(() => {
-        try { prevSrc.stop(); } catch (_) {}
+        try {
+          prevSrc.stop();
+        } catch {
+          // ignore already stopped audio
+        }
       }, FADE_MS + 50);
     }
     s.src = null; s.gain = null;
@@ -107,9 +111,9 @@ const AmbientPlayer = ({ sound }) => {
 
     // Cleanup runs when sound changes or component unmounts
     return () => {
-      if (stateRef.current.fadeTimer) {
-        clearTimeout(stateRef.current.fadeTimer);
-        stateRef.current.fadeTimer = null;
+      if (s.fadeTimer) {
+        clearTimeout(s.fadeTimer);
+        s.fadeTimer = null;
       }
       if (s.gain && s.ctx) {
         const t = s.ctx.currentTime;
@@ -117,7 +121,13 @@ const AmbientPlayer = ({ sound }) => {
         s.gain.gain.setValueAtTime(s.gain.gain.value, t);
         s.gain.gain.linearRampToValueAtTime(0, t + 0.5);
         const dying = s.src;
-        setTimeout(() => { try { dying.stop(); } catch (_) {} }, 600);
+        setTimeout(() => {
+          try {
+            dying.stop();
+          } catch {
+            // ignore
+          }
+        }, 600);
       }
     };
   }, [sound]);

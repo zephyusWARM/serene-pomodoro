@@ -8,6 +8,7 @@
   justify-content: center;
   flex-shrink: 0;
   margin: 0 auto;
+  user-select: none;
 }
 
 /* ── SVG Thin Ring ── */
@@ -19,104 +20,195 @@
 
 .progress-ring-bg {
   fill: none;
-  stroke: rgba(255,255,255,0.06);
-  stroke-width: 1.5; /* ultra thin */
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 2.2;
 }
 
 .progress-ring-glow {
   fill: none;
-  stroke-width: 4;
+  stroke-width: 5;
   stroke-linecap: round;
-  stroke-dasharray: 691.5;
-  stroke-dashoffset: 691.5;
+  stroke-dasharray: 691.15;
+  stroke-dashoffset: 691.15;
   transition: stroke 1.5s ease;
-  opacity: 0.15;
-  filter: blur(2px);
+  opacity: 0.25;
+  filter: blur(4px);
 }
 
 .progress-ring-circle {
   fill: none;
-  stroke-width: 1.5; /* ultra thin */
+  stroke-width: 2.5;
   stroke-linecap: round;
-  stroke-dasharray: 691.5;
-  stroke-dashoffset: 691.5;
+  stroke-dasharray: 691.15;
+  stroke-dashoffset: 691.15;
   transition: stroke 1.5s ease;
 }
 
-/* Base colors matching the forest atmosphere vibes:
-   Focus: Cool Dawn (Teal/Silver)
-   Short: Warm Dusk (Peach/Amber)
-   Long : Night Sky (Lavender/Silver) */
-[data-mode="focus"]      .progress-ring-circle,
-[data-mode="focus"]      .progress-ring-glow    { stroke: rgba(180, 240, 240, 0.9); }
-[data-mode="shortBreak"] .progress-ring-circle,
-[data-mode="shortBreak"] .progress-ring-glow    { stroke: rgba(255, 210, 160, 0.9); }
-[data-mode="longBreak"]  .progress-ring-circle,
-[data-mode="longBreak"]  .progress-ring-glow    { stroke: rgba(210, 190, 255, 0.9); }
+/* Leading Orb at the tip of the progress ring */
+.progress-ring-orb-glow {
+  stroke: none;
+  opacity: 0;
+  filter: blur(3px);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
 
-/* Breathe glow when active */
+.progress-ring-orb {
+  stroke: none;
+  fill: #ffffff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* Mode Color Schemes */
+[data-mode="focus"] .progress-ring-circle   { stroke: url(#focusGlowGrad); }
+[data-mode="focus"] .progress-ring-glow     { stroke: #00f2fe; filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.65)); }
+[data-mode="focus"] .progress-ring-orb-glow { fill: #00f2fe; filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.95)); }
+[data-mode="focus"] .progress-ring-orb      { fill: #ffffff; filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.95)); }
+
+[data-mode="shortBreak"] .progress-ring-circle   { stroke: url(#shortBreakGrad); }
+[data-mode="shortBreak"] .progress-ring-glow     { stroke: #ffa751; filter: drop-shadow(0 0 12px rgba(255, 167, 81, 0.65)); }
+[data-mode="shortBreak"] .progress-ring-orb-glow { fill: #ffa751; filter: drop-shadow(0 0 10px rgba(255, 167, 81, 0.95)); }
+[data-mode="shortBreak"] .progress-ring-orb      { fill: #ffffff; filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.95)); }
+
+[data-mode="longBreak"] .progress-ring-circle   { stroke: url(#longBreakGrad); }
+[data-mode="longBreak"] .progress-ring-glow     { stroke: #c471ed; filter: drop-shadow(0 0 12px rgba(196, 113, 237, 0.65)); }
+[data-mode="longBreak"] .progress-ring-orb-glow { fill: #c471ed; filter: drop-shadow(0 0 10px rgba(196, 113, 237, 0.95)); }
+[data-mode="longBreak"] .progress-ring-orb      { fill: #ffffff; filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.95)); }
+
+/* Breathe glow and orb when active */
 [data-active="true"] .progress-ring-glow {
-  animation: glowPulse 4s ease-in-out infinite;
+  animation: glowPulse 3.6s ease-in-out infinite;
+}
+
+[data-active="true"] .progress-ring-orb-glow {
+  animation: orbPulse 2s ease-in-out infinite alternate;
 }
 
 @keyframes glowPulse {
-  0%, 100% { opacity: 0.15; filter: blur(2px); }
-  50%       { opacity: 0.40; filter: blur(5px); }
+  0%, 100% { opacity: 0.25; filter: blur(3px); }
+  50%       { opacity: 0.55; filter: blur(6px); }
 }
 
-/* ── Ultra-Thin Typeface ── */
+@keyframes orbPulse {
+  0%   { transform: scale(1); filter: drop-shadow(0 0 6px currentColor); }
+  100% { transform: scale(1.3); filter: drop-shadow(0 0 12px currentColor); }
+}
+
+/* ── Typography & Display ── */
 .timer-display {
   z-index: 10;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
-/* ── Break Quote ── */
+.time {
+  font-size: 4.5rem;
+  font-weight: 200;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.96);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.45);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.time-digits {
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+}
+
+/* Apple Watch style breathing colon */
+.time-colon {
+  display: inline-block;
+  margin: 0 2px;
+  position: relative;
+  top: -3px;
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+
+.time-colon.is-pulsing {
+  animation: colonBreathe 2s ease-in-out infinite;
+}
+
+@keyframes colonBreathe {
+  0%, 100% { opacity: 0.85; }
+  50%       { opacity: 0.2; }
+}
+
+/* Subtle breathing when active */
+[data-active="true"] .time {
+  animation: timePulse 4s ease-in-out infinite;
+}
+
+@keyframes timePulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.018); }
+}
+
+/* ── Break Quote (Glass Card) ── */
 .break-quote {
   position: absolute;
-  top: 70%;
+  top: 72%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  width: 280px;
+  gap: 0.3rem;
+  width: 260px;
   pointer-events: none;
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
 .break-quote.quote-in {
-  animation: quoteEnter 0.8s ease-out forwards;
+  animation: quoteEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .break-quote.quote-out {
-  animation: quoteExit 0.5s ease-in forwards;
+  animation: quoteExit 0.4s ease-in forwards;
 }
 
-.quote-icon {
-  font-size: 1.2rem;
-  margin-bottom: 0.15rem;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+.quote-icon-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  margin-bottom: 2px;
 }
 
 .quote-main {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.75);
-  letter-spacing: 0.03em;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.02em;
   font-weight: 300;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
   text-align: center;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .quote-sub {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   color: rgba(255, 255, 255, 0.45);
   font-weight: 300;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   font-style: italic;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 @keyframes quoteEnter {
@@ -127,25 +219,4 @@
 @keyframes quoteExit {
   0%   { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-6px); }
-}
-
-.time {
-  font-size: 4.4rem;
-  font-weight: 200; /* Extremely thin */
-  font-family: inherit;
-  color: rgba(255, 255, 255, 0.95);
-  letter-spacing: 0.05em;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 4px 24px rgba(0,0,0,0.4);
-  transition: opacity 0.5s ease;
-}
-
-/* Focus breathing text */
-[data-active="true"] .time {
-  animation: timePulse 4s ease-in-out infinite;
-}
-
-@keyframes timePulse {
-  0%, 100% { transform: scale(1); text-shadow: 0 4px 24px rgba(0,0,0,0.4); }
-  50%       { transform: scale(1.02); text-shadow: 0 8px 32px rgba(0,0,0,0.5); }
 }

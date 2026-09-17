@@ -13,9 +13,10 @@ export default function TimeTraveler({ active }) {
     let stars = [];
     
     // Minimalist time traveler effect parameters
-    const numStars = 120;
-    let targetSpeed = active ? 4.5 : 0.2;
+    const numStars = 110;
+    let targetSpeed = active ? 4.5 : 0.15;
     let currentSpeed = targetSpeed;
+    let isPaused = false;
     
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -40,19 +41,21 @@ export default function TimeTraveler({ active }) {
     let lastTime = performance.now();
     
     const render = (time) => {
+      if (document.hidden || isPaused) {
+        return;
+      }
+
       let dt = time - lastTime;
       if (dt > 50) dt = 16;
       lastTime = time;
 
       // Smoothly transition speed between active and paused states
-      targetSpeed = active ? 4.5 : 0.15;
+      targetSpeed = active ? 4.5 : 0.12;
       currentSpeed += (targetSpeed - currentSpeed) * 0.03;
 
-      // If speed is effectively zero and we're not active, stop rendering
-      // to save GPU/CPU during breaks (#10)
-      if (!active && currentSpeed < 0.2) {
+      // If speed is effectively zero and we're not active, clear & stop rendering loop
+      if (!active && currentSpeed < 0.15) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Don't schedule next frame — effect cleanup will handle restart
         return;
       }
 
@@ -82,23 +85,17 @@ export default function TimeTraveler({ active }) {
         const ppx = project(star.x, star.pz);
         const ppy = projectY(star.y, star.pz);
         
-        // Prevent drawing bizarre lines if particle just wrapped around
         if (star.pz === 2000) return;
 
-        // Opacity mapping based on distance from center: 
-        // Fade in from the center, fade out at the edges
         const distCenter = Math.sqrt(Math.pow(px - cx, 2) + Math.pow(py - cy, 2));
         const maxDist = Math.max(cx, cy) * 1.5;
-        // Fade in quickly near center, then stay visible, then fade out faintly
         let opacity = Math.min(1, Math.max(0, (distCenter - 20) / 200));
         opacity *= Math.max(0, 1 - (distCenter / maxDist));
         
-        // Draw the light particle "streak"
         ctx.beginPath();
-        // Give a slight ethereal blue-white glow
-        ctx.strokeStyle = `rgba(220, 240, 255, ${opacity * (currentSpeed > 1 ? 0.6 : 0.3)})`;
+        ctx.strokeStyle = `rgba(220, 240, 255, ${opacity * (currentSpeed > 1 ? 0.6 : 0.25)})`;
         ctx.lineCap = 'round';
-        ctx.lineWidth = Math.max(0.5, (2000 - star.z) / 600);
+        ctx.lineWidth = Math.max(0.5, (2000 - star.z) / 650);
         ctx.moveTo(ppx, ppy);
         ctx.lineTo(px, py);
         ctx.stroke();
@@ -106,14 +103,28 @@ export default function TimeTraveler({ active }) {
       
       animationFrameId = requestAnimationFrame(render);
     };
+
+    // Optimize battery: pause rendering when window is minimized or hidden in tray
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPaused = true;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      } else {
+        isPaused = false;
+        lastTime = performance.now();
+        animationFrameId = requestAnimationFrame(render);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     animationFrameId = requestAnimationFrame(render);
     
     return () => {
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animationFrameId);
     };
   }, [active]);
 
-  return <canvas ref={canvasRef} className={`time-traveler`} />;
+  return <canvas ref={canvasRef} className="time-traveler" />;
 }

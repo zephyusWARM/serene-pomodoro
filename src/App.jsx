@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Timer from './components/Timer';
 import Controls from './components/Controls';
 import Settings from './components/Settings';
 import AmbientPlayer from './components/AmbientPlayer';
 import FocusEndPrompt from './components/FocusEndPrompt';
 import RestOverlay from './components/RestOverlay';
+import MorningIntentionModal from './components/MorningIntentionModal';
 import useTimer from './hooks/useTimer';
 import useSettings from './hooks/useSettings';
 import useStats from './hooks/useStats';
+import useMorningIntention from './hooks/useMorningIntention';
 import { requestNotificationPermission } from './utils/notifications';
 import './App.css';
 
@@ -16,24 +18,37 @@ import bgBreak  from './assets/bg-break.png';
 import bgLong   from './assets/bg-overlay.png'; // Night/Cosmos for Long Break
 import TimeTraveler from './components/TimeTraveler'; // Time Traveler Dynamic Effect
 
-const AMBIENT_LABELS = {
-  none:   '🔇',
-  rain:   '🌧',
-  forest: '🌲',
-  cafe:   '☕',
-};
+import {
+  MuteIcon,
+  RainIcon,
+  ForestIcon,
+  CafeIcon,
+  MiniEqualizer,
+  FocusIcon,
+  ShortBreakIcon,
+  LongBreakIcon,
+  SparkleIcon,
+  TrayIcon,
+} from './components/Icons';
 
-const TRANSITION_MESSAGES = {
-  focus:      { text: '即將開始專注...', icon: '🍅' },
-  shortBreak: { text: '做得好！即將進入休息...', icon: '🌿' },
-  longBreak:  { text: '太棒了！進入長休息...', icon: '🌙' },
+const AMBIENT_ITEMS = [
+  { key: 'none', label: '靜音', Icon: MuteIcon },
+  { key: 'rain', label: '雨聲', Icon: RainIcon },
+  { key: 'forest', label: '森林', Icon: ForestIcon },
+  { key: 'cafe', label: '咖啡館', Icon: CafeIcon },
+];
+
+const TRANSITION_CONFIG = {
+  focus:      { text: '即將開始專注...', Icon: FocusIcon },
+  shortBreak: { text: '做得好！即將進入休息...', Icon: ShortBreakIcon },
+  longBreak:  { text: '太棒了！進入長休息...', Icon: LongBreakIcon },
 };
 
 function App() {
   const { settings, updateSetting } = useSettings();
 
   const {
-    minutes, seconds, isActive, mode, progress,
+    minutes, seconds, isActive, mode,
     startTimer, pauseTimer, resetTimer, changeMode,
     isTransitioning, cycleCount,
     totalDuration, remainingMs,
@@ -46,6 +61,14 @@ function App() {
   } = useTimer(settings);
 
   const { todayFocusCount, recordFocusSession } = useStats();
+
+  const {
+    showModal: showMorningModal,
+    todayIntention,
+    saveIntention,
+    dismissForToday,
+    openModalManual,
+  } = useMorningIntention({ isFocusActive: isActive && mode === 'focus' });
 
   // Stats listener + notification permission
   useEffect(() => {
@@ -66,27 +89,79 @@ function App() {
   useEffect(() => { handleRestCompleteRef.current = handleRestComplete; }, [handleRestComplete]);
   useEffect(() => { handleChooseWaitRef.current = handleChooseWait; }, [handleChooseWait]);
 
+  // Sync timer and intention status to Electron Tray
   useEffect(() => {
-    if (!window.electronAPI?.onOverlayAction) return;
+    if (!window.electronAPI?.updateTrayStatus) return;
+    const timeText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    window.electronAPI.updateTrayStatus({
+      timeText,
+      mode,
+      isRunning: isActive,
+      intentionText: todayIntention,
+    });
+  }, [minutes, seconds, mode, isActive, todayIntention]);
 
-    const handler = (action) => {
-      if (action === 'rest-complete') {
-        handleRestCompleteRef.current();
-      } else if (action === 'wait-one-minute') {
-        handleChooseWaitRef.current();
+  // Tray action listener
+  useEffect(() => {
+    if (!window.electronAPI?.onTrayAction) return;
+
+    const cleanupTrayAction = window.electronAPI.onTrayAction((action) => {
+      if (action === 'toggle') {
+        if (isActive) {
+          pauseTimer();
+        } else {
+          startTimer();
+        }
+      } else if (action === 'reset') {
+        resetTimer();
       }
-    };
+    });
 
-    window.electronAPI.onOverlayAction(handler);
-    
-    // Cleanup listener on unmount
+    const cleanupMorningModal = window.electronAPI.onOpenMorningModal?.(() => {
+      openModalManual();
+    });
+
     return () => {
-      if (window.electronAPI.removeOverlayAction) {
-        window.electronAPI.removeOverlayAction();
+      if (typeof cleanupTrayAction === 'function') cleanupTrayAction();
+      if (typeof cleanupMorningModal === 'function') cleanupMorningModal();
+    };
+  }, [isActive, startTimer, pauseTimer, resetTimer, openModalManual]);
+
+  // Global Keyboard Shortcuts (Space: Start/Pause, R: Reset, M: Cycle Mode)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (isActive) {
+          pauseTimer();
+        } else {
+          startTimer();
+        }
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        resetTimer();
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        const modes = ['focus', 'shortBreak', 'longBreak'];
+        const currentIdx = modes.indexOf(mode);
+        const next = modes[(currentIdx + 1) % modes.length];
+        changeMode(next);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isActive, mode, startTimer, pauseTimer, resetTimer, changeMode]);
 
   const handleHideToTray = () => {
     if (window.electronAPI?.hideWindow) window.electronAPI.hideWindow();
@@ -114,7 +189,7 @@ function App() {
   };
 
   const nextMode = getNextMode();
-  const transitionMsg = TRANSITION_MESSAGES[nextMode];
+  const transitionConfig = TRANSITION_CONFIG[nextMode];
 
   return (
     <div className="app" data-mode={mode}>
@@ -142,8 +217,10 @@ function App() {
       {isTransitioning && (
         <div className="transition-overlay">
           <div className="transition-content">
-            <div className="transition-icon">{transitionMsg.icon}</div>
-            <div className="transition-text">{transitionMsg.text}</div>
+            <div className="transition-icon-wrap">
+              <transitionConfig.Icon size={32} className="transition-icon-svg" />
+            </div>
+            <div className="transition-text">{transitionConfig.text}</div>
             <div className="transition-dots">
               <span className="t-dot" />
               <span className="t-dot" />
@@ -174,7 +251,9 @@ function App() {
       {focusEndState === 'break-done' && (
         <div className="break-done-overlay">
           <div className="break-done-content">
-            <div className="break-done-icon">☀️</div>
+            <div className="break-done-icon-wrap">
+              <SparkleIcon size={36} className="break-done-sparkle" />
+            </div>
             <h2 className="break-done-title">休息結束！</h2>
             <p className="break-done-text">準備好繼續專注了嗎？</p>
             <button className="break-done-btn" onClick={handleBreakDoneStart}>
@@ -184,20 +263,54 @@ function App() {
         </div>
       )}
 
+      {/* ── Morning Intention Modal ── */}
+      <MorningIntentionModal
+        visible={showMorningModal}
+        currentIntention={todayIntention}
+        onSave={saveIntention}
+        onDismiss={dismissForToday}
+      />
+
       {/* ── Minimalist Content Layer ── */}
       <div className="app-content">
         
         {/* Title Bar */}
         <div className="title-bar">
-          <Settings settings={settings} onUpdate={updateSetting} />
-          <p className="app-title">{settings.taskName || 'SERENE GUARDIAN'}</p>
+          <Settings 
+            settings={settings} 
+            onUpdate={updateSetting} 
+            todayIntention={todayIntention}
+            onOpenMorningModal={openModalManual}
+          />
+          <div className="title-center">
+            <p className="app-title">{settings.taskName || 'SERENE GUARDIAN'}</p>
+            {todayIntention ? (
+              <button
+                className="morning-intention-badge"
+                onClick={openModalManual}
+                title="點擊回顧或修改今日心向"
+              >
+                <SparkleIcon size={12} className="badge-sparkle-icon" />
+                <span className="badge-text">{todayIntention}</span>
+              </button>
+            ) : (
+              <button
+                className="morning-intention-badge empty"
+                onClick={openModalManual}
+                title="點擊設定今日心向"
+              >
+                <SparkleIcon size={12} className="badge-sparkle-icon" />
+                <span className="badge-text">今日心向</span>
+              </button>
+            )}
+          </div>
           {window.electronAPI?.isElectron ? (
             <button
               className="tray-hide-btn"
               onClick={handleHideToTray}
               title="隱藏至系統列"
             >
-              ⬇
+              <TrayIcon size={14} />
             </button>
           ) : (
             <div className="tray-placeholder" />
@@ -209,7 +322,6 @@ function App() {
           <Timer
             minutes={minutes}
             seconds={seconds}
-            progress={progress}
             mode={mode}
             isActive={isActive}
             totalDuration={totalDuration}
@@ -229,19 +341,25 @@ function App() {
           isTransitioning={isTransitioning}
         />
 
-        {/* Ambient Tools */}
-        <div className="ambient-bar">
-          {Object.entries(AMBIENT_LABELS).map(([sound, label]) => (
-            <button
-              key={sound}
-              className={`ambient-btn${settings.ambientSound === sound ? ' active' : ''}`}
-              data-sound={sound}
-              onClick={() => updateSetting('ambientSound', sound)}
-              title={sound}
-            >
-              {label}
-            </button>
-          ))}
+        {/* Ambient Tools (Apple Mini-Dock Style) */}
+        <div className="ambient-bar" role="toolbar" aria-label="環境白噪音">
+          {AMBIENT_ITEMS.map(({ key, label, Icon }) => {
+            const isSelected = settings.ambientSound === key;
+            const isPlaying = isSelected && key !== 'none';
+            return (
+              <button
+                key={key}
+                className={`ambient-btn${isSelected ? ' active' : ''}`}
+                data-sound={key}
+                onClick={() => updateSetting('ambientSound', key)}
+                title={`環境白噪音：${label}${isPlaying ? ' (播放中)' : ''}`}
+              >
+                <Icon size={14} className="ambient-icon" />
+                <span className="ambient-label">{label}</span>
+                {isPlaying && <MiniEqualizer />}
+              </button>
+            );
+          })}
         </div>
 
         {/* Minimalist Progress Indicator */}

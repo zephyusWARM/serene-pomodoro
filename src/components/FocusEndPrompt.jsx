@@ -7,42 +7,29 @@ import './FocusEndPrompt.css';
  *   1. 「開始休息」 → triggers onRest (fullscreen rest takeover)
  *   2. 「再等一分鐘」 → dismisses; after 60 s, re-shows itself
  */
-const FocusEndPrompt = ({ visible, onRest, onWait }) => {
+function FocusEndContent({ onRest, onWait }) {
   const [countdown, setCountdown] = useState(3);
-  const [buttonsVisible, setButtonsVisible] = useState(false);
   const intervalRef = useRef(null);
 
-  // Reset countdown every time prompt becomes visible
   useEffect(() => {
-    if (visible) {
-      setCountdown(3);
-      setButtonsVisible(true);
-
-      intervalRef.current = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      clearInterval(intervalRef.current);
-      setCountdown(3);
-    }
+    intervalRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     return () => clearInterval(intervalRef.current);
-  }, [visible]);
+  }, []);
 
-  // Trigger auto-rest when countdown reaches 0 (outside of setState updater)
   useEffect(() => {
-    if (visible && countdown === 0) {
+    if (countdown === 0) {
       onRest();
     }
-  }, [visible, countdown, onRest]);
-
-  if (!visible) return null;
+  }, [countdown, onRest]);
 
   return (
     <div className="focus-end-overlay">
@@ -54,32 +41,35 @@ const FocusEndPrompt = ({ visible, onRest, onWait }) => {
         <h2 className="focus-end-title">專注結束！</h2>
         <p className="focus-end-subtitle">做得好，你值得休息一下</p>
 
-        {/* Countdown or Buttons */}
-        {buttonsVisible && (
-          <div className="focus-end-actions">
-            <button
-              className="focus-end-btn rest-btn"
-              onClick={() => {
-                clearInterval(intervalRef.current);
-                onRest();
-              }}
-            >
-              🌿 開始休息 ({countdown}s)
-            </button>
-            <button
-              className="focus-end-btn wait-btn"
-              onClick={() => {
-                clearInterval(intervalRef.current);
-                onWait();
-              }}
-            >
-              ⏳ 再等一分鐘
-            </button>
-          </div>
-        )}
+        {/* Action Buttons */}
+        <div className="focus-end-actions">
+          <button
+            className="focus-end-btn rest-btn"
+            onClick={() => {
+              clearInterval(intervalRef.current);
+              onRest();
+            }}
+          >
+            🌿 開始休息 ({countdown}s)
+          </button>
+          <button
+            className="focus-end-btn wait-btn"
+            onClick={() => {
+              clearInterval(intervalRef.current);
+              onWait();
+            }}
+          >
+            ⏳ 再等一分鐘
+          </button>
+        </div>
       </div>
     </div>
   );
+}
+
+const FocusEndPrompt = ({ visible, onRest, onWait }) => {
+  if (!visible) return null;
+  return <FocusEndContent onRest={onRest} onWait={onWait} />;
 };
 
 export default FocusEndPrompt;

@@ -1,4 +1,4 @@
-/* ── Root Layout ── */
+/* ── Root Layout (Apple Liquid Glass Floating Card) ── */
 .app {
   width: 100vw;
   height: 100vh;
@@ -8,23 +8,25 @@
   position: relative;
   -webkit-app-region: drag;
   overflow: hidden;
-  background: #050a0f; /* very dark base */
+  background: #060b13;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
 /* ── AI Background (crossfade between modes) ── */
 .app-bg {
   position: absolute;
-  inset: -10px; /* slight overflow for breathing scale */
+  inset: -10px;
   z-index: 0;
   background-size: cover;
   background-position: center;
-  transition: opacity 1.5s var(--ease-out-expo), transform 15s linear;
-}
-
-/* Subtle continuous drift for the background */
-.app-bg {
+  transition: opacity 1.5s cubic-bezier(0.19, 1, 0.22, 1), transform 15s linear;
   animation: bgDrift 30s ease-in-out infinite alternate;
 }
+
 @keyframes bgDrift {
   0%   { transform: scale(1.02) translate(0, 0); }
   100% { transform: scale(1.06) translate(-1%, -1%); }
@@ -51,35 +53,34 @@
   inset: 0;
   z-index: 1;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.04;
+  opacity: 0.035;
   pointer-events: none;
   mix-blend-mode: overlay;
 }
 
-/* ── Deep Minimalist Shadow Overlay ── */
+/* ── Deep Minimalist Shadow & Vignette Overlay ── */
 .app::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 2;
-  /* Dark mask over the illustration so white text is perfectly crisp */
   background: linear-gradient(
     to bottom,
     rgba(6, 12, 20, 0.4) 0%,
-    rgba(6, 12, 20, 0.15) 30%,
-    rgba(6, 12, 20, 0.75) 100%
+    rgba(6, 12, 20, 0.15) 35%,
+    rgba(6, 12, 20, 0.8) 100%
   );
   pointer-events: none;
 }
 
-/* ── Content Container (No Box, Fully Transparent) ── */
+/* ── Content Container ── */
 .app-content {
   position: relative;
   z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.2rem;
+  padding: 1.1rem;
   width: 100%;
   height: 100%;
 }
@@ -95,91 +96,231 @@
 
 /* ── Tray Button ── */
 .tray-hide-btn {
-  background: transparent;
-  border: none;
-  width: 28px;
-  height: 28px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  font-size: 0.85rem;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  color: rgba(255,255,255,0.4);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: rgba(255, 255, 255, 0.55);
   flex-shrink: 0;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
+
 .tray-hide-btn:hover {
-  color: rgba(255,255,255,0.8);
-  transform: translateY(2px);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  transform: translateY(1px);
 }
+
 .tray-placeholder {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
 }
 
-/* ── App Title ── */
+/* ── Title Center & App Title ── */
+.title-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
 .app-title {
-  font-size: 0.65rem;
-  font-weight: 300;
-  color: rgba(255,255,255,0.4);
-  letter-spacing: 0.3em;
+  font-size: 0.63rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.25em;
   text-transform: uppercase;
   margin: 0;
-  flex: 1;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }
 
-/* ── Minimalist Progress Dots (Replaces Emoji Garden) ── */
+/* ── Morning Intention Badge in Title Bar ── */
+.morning-intention-badge {
+  background: rgba(255, 195, 120, 0.1);
+  border: 1px solid rgba(255, 205, 140, 0.25);
+  border-radius: 9999px;
+  color: rgba(255, 225, 175, 0.95);
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 170px;
+}
+
+.badge-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-sparkle-icon {
+  flex-shrink: 0;
+  color: #ffcc80;
+}
+
+.morning-intention-badge:not(.empty) {
+  animation: badgeBreathing 4s ease-in-out infinite alternate;
+}
+
+@keyframes badgeBreathing {
+  0% {
+    border-color: rgba(255, 205, 140, 0.25);
+    box-shadow: 0 0 6px rgba(255, 190, 110, 0.1);
+  }
+  100% {
+    border-color: rgba(255, 220, 160, 0.55);
+    box-shadow: 0 0 12px rgba(255, 190, 110, 0.25);
+  }
+}
+
+.morning-intention-badge:hover {
+  background: rgba(255, 195, 120, 0.2);
+  border-color: rgba(255, 220, 160, 0.7);
+  box-shadow: 0 0 14px rgba(255, 190, 110, 0.35);
+  transform: translateY(-1px);
+}
+
+.morning-intention-badge.empty {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.morning-intention-badge.empty:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ── Ambient Sound Mini-Dock (Apple Dynamic Island aesthetic) ── */
+.ambient-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  -webkit-app-region: no-drag;
+  margin-top: 0.85rem;
+  background: rgba(15, 23, 35, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 3px 6px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.ambient-btn {
+  position: relative;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  outline: none;
+}
+
+.ambient-btn:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ambient-btn.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ambient-icon {
+  flex-shrink: 0;
+}
+
+.ambient-label {
+  font-size: 0.68rem;
+}
+
+/* Mini Equalizer animation */
+.mini-equalizer {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 10px;
+  margin-left: 2px;
+}
+
+.mini-equalizer .bar {
+  width: 2px;
+  background: #00f2fe;
+  border-radius: 1px;
+  animation: eqJump 0.8s ease-in-out infinite alternate;
+}
+
+.mini-equalizer .bar-1 { height: 4px; animation-delay: 0.1s; }
+.mini-equalizer .bar-2 { height: 8px; animation-delay: 0.3s; }
+.mini-equalizer .bar-3 { height: 6px; animation-delay: 0.2s; }
+
+@keyframes eqJump {
+  0%   { height: 3px; }
+  100% { height: 9px; }
+}
+
+/* ── Minimalist Progress Dots ── */
 .progress-dots-container {
   margin-top: auto;
   -webkit-app-region: no-drag;
   display: flex;
-  gap: 8px;
-  padding-bottom: 0.5rem;
-  opacity: 0.6;
+  gap: 7px;
+  padding-bottom: 0.2rem;
+  opacity: 0.7;
 }
+
 .progress-dot {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  transition: background 0.5s ease, box-shadow 0.5s ease;
-}
-.progress-dot.completed {
-  background: rgba(255,255,255,0.85);
-  box-shadow: 0 0 6px rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.4s ease;
 }
 
-/* ── No-drag for interactive ── */
+.progress-dot.completed {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+/* ── Interactive Overrides ── */
 button, select, input[type="range"] {
   -webkit-app-region: no-drag;
-}
-
-/* ── Ambient Sound Bar ── */
-.ambient-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  -webkit-app-region: no-drag;
-  margin-top: 1rem;
-}
-
-.ambient-btn {
-  background: transparent;
-  border: none;
-  color: rgba(255,255,255,0.3);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: color 0.4s ease, text-shadow 0.4s ease;
-  padding: 4px;
-}
-.ambient-btn:hover {
-  color: rgba(255,255,255,0.6);
-}
-.ambient-btn.active { 
-  color: rgba(255,255,255,0.9);
-  text-shadow: 0 0 8px rgba(255,255,255,0.3);
 }
 
 /* ── Transition Overlay ── */
@@ -190,10 +331,10 @@ button, select, input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 10, 15, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  animation: overlayFadeIn 0.5s ease-out forwards;
+  background: rgba(5, 10, 15, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: overlayFadeIn 0.4s ease-out forwards;
   -webkit-app-region: no-drag;
 }
 
@@ -207,37 +348,47 @@ button, select, input[type="range"] {
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  animation: transitionPulse 2s ease-in-out infinite;
+  animation: transitionPulse 2.4s ease-in-out infinite;
 }
 
 @keyframes transitionPulse {
   0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.03); }
+  50%      { transform: scale(1.025); }
 }
 
-.transition-icon {
-  font-size: 2.5rem;
-  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5));
+.transition-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
 }
 
 .transition-text {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 300;
-  color: rgba(255, 255, 255, 0.85);
-  letter-spacing: 0.15em;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.12em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
 .transition-dots {
   display: flex;
-  gap: 8px;
+  gap: 7px;
 }
 
 .t-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.65);
   animation: dotBounce 1.4s ease-in-out infinite;
 }
 
@@ -246,7 +397,7 @@ button, select, input[type="range"] {
 
 @keyframes dotBounce {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
-  40%           { transform: scale(1.2); opacity: 1; }
+  40%           { transform: scale(1.25); opacity: 1; }
 }
 
 /* ── Break Done Overlay ── */
@@ -257,10 +408,10 @@ button, select, input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 10, 15, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  animation: overlayFadeIn 0.6s ease-out forwards;
+  background: rgba(5, 10, 15, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: overlayFadeIn 0.5s ease-out forwards;
   -webkit-app-region: no-drag;
 }
 
@@ -268,50 +419,61 @@ button, select, input[type="range"] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.2rem;
+  gap: 1.1rem;
   animation: transitionPulse 3s ease-in-out infinite;
 }
 
-.break-done-icon {
-  font-size: 3rem;
-  filter: drop-shadow(0 4px 20px rgba(255, 200, 50, 0.4));
+.break-done-icon-wrap {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.25);
+  color: #ffd700;
 }
 
 .break-done-title {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 300;
-  color: rgba(255, 255, 255, 0.9);
-  letter-spacing: 0.2em;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.18em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
   margin: 0;
 }
 
 .break-done-text {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 300;
-  color: rgba(255, 255, 255, 0.5);
-  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.08em;
   margin: 0;
 }
 
 .break-done-btn {
-  margin-top: 0.8rem;
-  padding: 12px 32px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 30px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
+  margin-top: 0.6rem;
+  padding: 10px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  font-size: 0.85rem;
   font-weight: 400;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(8px);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .break-done-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.15);
+  transform: scale(1.04);
 }
