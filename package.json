@@ -4,7 +4,7 @@
   "description": "A serene health guardian that breaks prolonged sitting and protects your eyes with the 20-20-20 rule",
   "author": "Your Name",
   "private": true,
-  "repository": "zephyus/serene-pomodoro",
+  "repository": "zephyusWARM/serene-pomodoro",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
