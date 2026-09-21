@@ -20,6 +20,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return ipcRenderer.invoke('hide-window');
     },
 
+    // 啟動休息期間全螢幕四周漸層光暈 (支援點擊穿透)
+    startBreakGlow: (params) => {
+        return ipcRenderer.invoke('start-break-glow', params);
+    },
+
+    // 停止/關閉休息光暈
+    stopBreakGlow: () => {
+        return ipcRenderer.invoke('stop-break-glow');
+    },
+
+    // 更新休息光暈的剩餘時間
+    updateBreakGlow: (data) => {
+        return ipcRenderer.invoke('update-break-glow', data);
+    },
+
+    // 休息結束通知 (關閉光暈、喚醒置頂主視窗、閃爍工作列)
+    notifyBreakCompleted: () => {
+        return ipcRenderer.invoke('notify-break-completed');
+    },
+
     // 監聽來自 Overlay 的動作
     onOverlayAction: (callback) => {
         // Remove previous listener if any, to prevent accumulation

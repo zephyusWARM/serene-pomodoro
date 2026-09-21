@@ -39,31 +39,30 @@ export const playZenChime = () => {
     }
 };
 
-// Combined notification handler - triggers chime + overlay in Electron, silent browser notification otherwise
-export const triggerNotification = (mode, skipCount = 0) => {
+// Combined notification handler - triggers chime + optional OS notification
+export const triggerNotification = (mode) => {
     // Play tranquil chime
     playZenChime();
 
-    if (isElectron && window.electronAPI?.showOverlay) {
-        window.electronAPI.showOverlay(mode, skipCount);
-        return;
-    }
-
-    // Fallback: browser notification
+    // Browser / system notification fallback
     if ('Notification' in window && Notification.permission === 'granted') {
         const messages = {
-            focus: { title: '✨ 專注時間結束', body: '做得很好！休息一下吧。' },
-            shortBreak: { title: '☕ 短休息結束', body: '準備好再次專注了嗎？' },
-            longBreak: { title: '🌟 長休息結束', body: '精神飽滿，繼續前進！' }
+            focus: { title: '✨ 專注時間結束', body: '做得很好！已自動開始 5 分鐘休息。' },
+            shortBreak: { title: '🌿 休息結束', body: '請回到電腦前點擊「繼續」開始下一段專注。' },
+            longBreak: { title: '🌟 長休息結束', body: '身心充飽電，準備好請點擊「繼續」！' }
         };
         const msg = messages[mode] || messages.focus;
-        new Notification(msg.title, {
-            body: msg.body,
-            icon: '/vite.svg',
-            tag: 'pomodoro-timer',
-            requireInteraction: true,
-            silent: true
-        });
+        try {
+            new Notification(msg.title, {
+                body: msg.body,
+                icon: '/vite.svg',
+                tag: 'pomodoro-timer',
+                requireInteraction: false,
+                silent: true
+            });
+        } catch {
+            // notification failed
+        }
     }
 };
 

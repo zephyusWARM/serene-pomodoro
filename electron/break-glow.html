@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serene Guardian - 休息光暈</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            pointer-events: none !important;
+            user-select: none !important;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: transparent !important;
+            font-family: 'Inter', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+        }
+
+        /* ── Screen Perimeter Vignette Gradient Glow ── */
+        .glow-vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            /* Multi-layer ambient inset shadow creating deep edge glow */
+            box-shadow: 
+                inset 0 0 70px 25px rgba(52, 211, 153, 0.45),
+                inset 0 0 130px 55px rgba(16, 185, 129, 0.28),
+                inset 0 0 220px 90px rgba(5, 150, 105, 0.16);
+            animation: breatheGlow 4.5s ease-in-out infinite alternate;
+        }
+
+        /* Edge-specific linear gradient sweeps for ultra-rich depth */
+        .edge-top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 110px;
+            background: linear-gradient(to bottom, rgba(52, 211, 153, 0.42) 0%, rgba(16, 185, 129, 0.18) 45%, transparent 100%);
+            z-index: 2;
+            animation: breatheEdge 4.5s ease-in-out infinite alternate;
+        }
+
+        .edge-bottom {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 110px;
+            background: linear-gradient(to top, rgba(52, 211, 153, 0.42) 0%, rgba(16, 185, 129, 0.18) 45%, transparent 100%);
+            z-index: 2;
+            animation: breatheEdge 4.5s ease-in-out infinite alternate;
+        }
+
+        .edge-left {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 90px;
+            background: linear-gradient(to right, rgba(52, 211, 153, 0.38) 0%, rgba(16, 185, 129, 0.15) 50%, transparent 100%);
+            z-index: 2;
+            animation: breatheEdge 4.5s ease-in-out infinite alternate;
+        }
+
+        .edge-right {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            width: 90px;
+            background: linear-gradient(to left, rgba(52, 211, 153, 0.38) 0%, rgba(16, 185, 129, 0.15) 50%, transparent 100%);
+            z-index: 2;
+            animation: breatheEdge 4.5s ease-in-out infinite alternate;
+        }
+
+        /* Ambient corner highlights */
+        .corner-glow {
+            position: fixed;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            filter: blur(50px);
+            opacity: 0.55;
+            z-index: 2;
+            animation: breatheCorner 6s ease-in-out infinite alternate;
+        }
+        .corner-tl { top: -80px; left: -80px; background: radial-gradient(circle, rgba(52, 211, 153, 0.6) 0%, transparent 70%); }
+        .corner-tr { top: -80px; right: -80px; background: radial-gradient(circle, rgba(45, 212, 191, 0.6) 0%, transparent 70%); }
+        .corner-bl { bottom: -80px; left: -80px; background: radial-gradient(circle, rgba(45, 212, 191, 0.6) 0%, transparent 70%); }
+        .corner-br { bottom: -80px; right: -80px; background: radial-gradient(circle, rgba(52, 211, 153, 0.6) 0%, transparent 70%); }
+
+        @keyframes breatheGlow {
+            0% {
+                box-shadow: 
+                    inset 0 0 65px 20px rgba(52, 211, 153, 0.38),
+                    inset 0 0 120px 48px rgba(16, 185, 129, 0.22),
+                    inset 0 0 200px 80px rgba(5, 150, 105, 0.12);
+                opacity: 0.82;
+            }
+            100% {
+                box-shadow: 
+                    inset 0 0 95px 35px rgba(52, 211, 153, 0.55),
+                    inset 0 0 160px 70px rgba(16, 185, 129, 0.35),
+                    inset 0 0 260px 110px rgba(5, 150, 105, 0.22);
+                opacity: 1;
+            }
+        }
+
+        @keyframes breatheEdge {
+            0%   { opacity: 0.75; transform: scale(0.995); }
+            100% { opacity: 1;    transform: scale(1.005); }
+        }
+
+        @keyframes breatheCorner {
+            0%   { opacity: 0.42; transform: scale(0.9); }
+            100% { opacity: 0.7;  transform: scale(1.15); }
+        }
+
+        /* ── Canvas Particle Field (Edge Fireflies / Floating Motes) ── */
+        #particleCanvas {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 3;
+        }
+
+        /* ── Minimalist Top Status Pill ── */
+        .status-container {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pillFadeIn 1s ease-out forwards;
+        }
+
+        @keyframes pillFadeIn {
+            0%   { opacity: 0; transform: translate(-50%, -10px); }
+            100% { opacity: 1; transform: translate(-50%, 0); }
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 20px;
+            background: rgba(8, 20, 16, 0.65);
+            border: 1px solid rgba(52, 211, 153, 0.35);
+            border-radius: 9999px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 
+                0 10px 25px rgba(0, 0, 0, 0.35),
+                0 0 20px rgba(52, 211, 153, 0.2);
+            color: rgba(255, 255, 255, 0.92);
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #34d399;
+            box-shadow: 0 0 10px #34d399;
+            animation: pulseDot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50%      { transform: scale(1.35); opacity: 1; }
+        }
+
+        .time-badge {
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+            color: #6ee7b7;
+            letter-spacing: 0.05em;
+        }
+
+        .status-hint {
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 0.78rem;
+            margin-left: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-vignette"></div>
+    <div class="edge-top"></div>
+    <div class="edge-bottom"></div>
+    <div class="edge-left"></div>
+    <div class="edge-right"></div>
+
+    <div class="corner-glow corner-tl"></div>
+    <div class="corner-glow corner-tr"></div>
+    <div class="corner-glow corner-bl"></div>
+    <div class="corner-glow corner-br"></div>
+
+    <canvas id="particleCanvas"></canvas>
+
+    <div class="status-container">
+        <div class="status-pill">
+            <span class="status-dot"></span>
+            <span>🌿 靜謐休息中</span>
+            <span class="time-badge" id="timeText">05:00</span>
+            <span class="status-hint">· 放鬆雙眼與肩頸</span>
+        </div>
+    </div>
+
+    <script>
+        const timeEl = document.getElementById('timeText');
+
+        // Listen for timer updates from Electron main process
+        if (window.glowAPI?.onTick) {
+            window.glowAPI.onTick((data) => {
+                if (data && data.timeText) {
+                    timeEl.textContent = data.timeText;
+                }
+            });
+        }
+
+        // Particle Canvas for subtle perimeter energy motes
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class GlowParticle {
+            constructor() {
+                this.reset(true);
+            }
+            reset(randomize = false) {
+                // Spawn near borders
+                const side = Math.floor(Math.random() * 4);
+                if (side === 0) { // Top
+                    this.x = Math.random() * canvas.width;
+                    this.y = randomize ? Math.random() * 120 : 0;
+                    this.vx = (Math.random() - 0.5) * 0.4;
+                    this.vy = Math.random() * 0.3 + 0.1;
+                } else if (side === 1) { // Bottom
+                    this.x = Math.random() * canvas.width;
+                    this.y = randomize ? canvas.height - Math.random() * 120 : canvas.height;
+                    this.vx = (Math.random() - 0.5) * 0.4;
+                    this.vy = -(Math.random() * 0.3 + 0.1);
+                } else if (side === 2) { // Left
+                    this.x = randomize ? Math.random() * 100 : 0;
+                    this.y = Math.random() * canvas.height;
+                    this.vx = Math.random() * 0.3 + 0.1;
+                    this.vy = (Math.random() - 0.5) * 0.4;
+                } else { // Right
+                    this.x = randomize ? canvas.width - Math.random() * 100 : canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.vx = -(Math.random() * 0.3 + 0.1);
+                    this.vy = (Math.random() - 0.5) * 0.4;
+                }
+                this.size = Math.random() * 2.2 + 0.8;
+                this.life = 0;
+                this.maxLife = Math.random() * 180 + 120;
+                const hue = Math.random() > 0.4 ? 158 : 172; // Emerald or Teal
+                this.color = `hsla(${hue}, 80%, 65%, `;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life++;
+                if (this.life > this.maxLife) {
+                    this.reset();
+                }
+            }
+            draw() {
+                let alpha = 0.5;
+                if (this.life < 30) alpha = (this.life / 30) * 0.5;
+                else if (this.life > this.maxLife - 30) alpha = ((this.maxLife - this.life) / 30) * 0.5;
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color + alpha + ')';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#34d399';
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        const count = 35;
+        for (let i = 0; i < count; i++) {
+            particles.push(new GlowParticle());
+        }
+
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>

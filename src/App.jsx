@@ -101,6 +101,15 @@ function App() {
     });
   }, [minutes, seconds, mode, isActive, todayIntention]);
 
+  // Sync break countdown to Electron perimeter break glow
+  useEffect(() => {
+    if (mode !== 'focus' && isActive && window.electronAPI?.updateBreakGlow) {
+      const timeText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      const percent = totalDuration > 0 ? (totalDuration - remainingMs) / totalDuration : 0;
+      window.electronAPI.updateBreakGlow({ timeText, percent });
+    }
+  }, [minutes, seconds, mode, isActive, totalDuration, remainingMs]);
+
   // Tray action listener
   useEffect(() => {
     if (!window.electronAPI?.onTrayAction) return;
@@ -127,7 +136,7 @@ function App() {
     };
   }, [isActive, startTimer, pauseTimer, resetTimer, openModalManual]);
 
-  // Global Keyboard Shortcuts (Space: Start/Pause, R: Reset, M: Cycle Mode)
+  // Global Keyboard Shortcuts (Space: Start/Pause/Continue, R: Reset, M: Cycle Mode)
   useEffect(() => {
     const handleKeyDown = (e) => {
       const activeEl = document.activeElement;
@@ -138,6 +147,15 @@ function App() {
           activeEl.isContentEditable)
       ) {
         return;
+      }
+
+      // If waiting for user to return after break, Space or Enter triggers "繼續"
+      if (focusEndState === 'break-done') {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+          handleBreakDoneStart();
+          return;
+        }
       }
 
       if (e.code === 'Space') {
@@ -161,7 +179,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, mode, startTimer, pauseTimer, resetTimer, changeMode]);
+  }, [isActive, mode, focusEndState, handleBreakDoneStart, startTimer, pauseTimer, resetTimer, changeMode]);
 
   const handleHideToTray = () => {
     if (window.electronAPI?.hideWindow) window.electronAPI.hideWindow();
@@ -255,12 +273,22 @@ function App() {
               <SparkleIcon size={36} className="break-done-sparkle" />
             </div>
             <h2 className="break-done-title">休息結束！</h2>
-            <p className="break-done-text">準備好繼續專注了嗎？</p>
-            <button className="break-done-btn" onClick={handleBreakDoneStart}>
-              開始下一段專注
+            <p className="break-done-text">身心充飽電，準備好請點擊繼續</p>
+            <button
+              className="break-done-btn"
+              onClick={handleBreakDoneStart}
+              title="點擊開始下一段專注 (快捷鍵 Space 或 Enter)"
+              autoFocus
+            >
+              繼續 · 開始專注
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── Web Fallback Break Glow (for browser mode) ── */}
+      {!window.electronAPI?.isElectron && mode !== 'focus' && isActive && (
+        <div className="web-break-glow" />
       )}
 
       {/* ── Morning Intention Modal ── */}

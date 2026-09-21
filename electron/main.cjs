@@ -7,6 +7,7 @@ const isDev = process.env.NODE_ENV === 'development';
 let mainWindow;
 let overlayWindow = null;
 let eyeReminderWindow = null;
+let breakGlowWindows = [];
 let tray = null;
 
 function createWindow() {
@@ -335,14 +336,113 @@ app.whenReady().then(() => {
     });
 });
 
+app.on('before-quit', () => {
+    app.isQuiting = true;
+    closeBreakGlowWindows();
+});
+
 // 當所有視窗都關閉時
 app.on('window-all-closed', () => {
+    closeBreakGlowWindows();
     if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
+// 建立全螢幕置頂休息四周光暈視窗 (多螢幕支援、滑鼠完全穿透)
+function createBreakGlowWindows() {
+    closeBreakGlowWindows();
+
+    const displays = screen.getAllDisplays();
+    const glowPath = path.join(__dirname, 'break-glow.html');
+
+    displays.forEach((display) => {
+        const { x, y, width, height } = display.bounds;
+        const glowWin = new BrowserWindow({
+            x,
+            y,
+            width,
+            height,
+            frame: false,
+            transparent: true,
+            alwaysOnTop: true,
+            skipTaskbar: true,
+            resizable: false,
+            movable: false,
+            focusable: false,
+            hasShadow: false,
+            backgroundColor: '#00000000',
+            webPreferences: {
+                preload: path.join(__dirname, 'glow-preload.cjs'),
+                nodeIntegration: false,
+                contextIsolation: true,
+            },
+        });
+
+        // 設為 screen-saver 等級置頂，確保在工作視窗之上呈現氛圍
+        glowWin.setAlwaysOnTop(true, 'screen-saver');
+        // 關鍵：開啟完全滑鼠穿透，使用者點擊、滾動不被光暈阻擋
+        glowWin.setIgnoreMouseEvents(true, { forward: true });
+
+        glowWin.loadFile(glowPath);
+
+        glowWin.on('closed', () => {
+            const idx = breakGlowWindows.indexOf(glowWin);
+            if (idx !== -1) {
+                breakGlowWindows.splice(idx, 1);
+            }
+        });
+
+        breakGlowWindows.push(glowWin);
+    });
+}
+
+// 關閉所有螢幕的休息光暈視窗
+function closeBreakGlowWindows() {
+    breakGlowWindows.forEach((win) => {
+        if (win && !win.isDestroyed()) {
+            win.close();
+        }
+    });
+    breakGlowWindows = [];
+}
+
+// 同步倒數時間資訊給所有光暈視窗
+function updateBreakGlowTime(data) {
+    breakGlowWindows.forEach((win) => {
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('glow-tick', data);
+        }
+    });
+}
+
 // -- IPC 處理區 --
+
+ipcMain.handle('start-break-glow', () => {
+    createBreakGlowWindows();
+});
+
+ipcMain.handle('stop-break-glow', () => {
+    closeBreakGlowWindows();
+});
+
+ipcMain.handle('update-break-glow', (event, data) => {
+    updateBreakGlowTime(data);
+});
+
+ipcMain.handle('notify-break-completed', () => {
+    closeBreakGlowWindows();
+    if (mainWindow) {
+        if (!mainWindow.isVisible()) {
+            mainWindow.show();
+        }
+        mainWindow.focus();
+        // 閃爍 Windows 工作列以溫柔提示使用者已休息完畢
+        if (typeof mainWindow.flashFrame === 'function') {
+            mainWindow.flashFrame(true);
+        }
+    }
+});
 
 ipcMain.handle('show-overlay', (event, { mode, skipCount }) => {
     createOverlayWindow(mode, skipCount);

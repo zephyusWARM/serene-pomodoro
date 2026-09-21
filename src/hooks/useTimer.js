@@ -124,30 +124,60 @@ const useTimer = (customDurations) => {
 
                 if (newRemaining <= 0) {
                     clearInterval(intervalRef.current);
-                    setRemainingMs(0);
-                    setIsActive(false);
 
                     const currentMode = modeRef.current;
 
                     if (currentMode === 'focus') {
                         window.dispatchEvent(new Event('focus-session-completed'));
-                    }
+                        triggerNotification('focus');
 
-                    triggerNotification(currentMode, skipCountRef.current);
+                        // Reset eye reminder flag for next focus cycle
+                        eyeReminderTriggeredRef.current = false;
 
-                    // Reset eye reminder flag for next focus cycle
-                    eyeReminderTriggeredRef.current = false;
+                        // Increment cycle count
+                        const nextCycle = cycleCountRef.current + 1;
+                        setCycleCount(nextCycle);
+                        cycleCountRef.current = nextCycle;
 
-                    // ** NEW LOGIC **
-                    // If focus just ended → show prompt instead of auto-transitioning
-                    if (currentMode === 'focus') {
-                        setFocusEndState('prompting'); // Show rest prompt
+                        // Auto-switch to break (5 minutes default)
+                        const nextMode = computeNextMode('focus', nextCycle);
+                        const breakDuration = durationsRef.current[nextMode];
+
+                        setMode(nextMode);
+                        modeRef.current = nextMode;
+                        setRemainingMs(breakDuration);
+                        remRef.current = breakDuration;
+                        setFocusEndState('none');
+
+                        // Immediately trigger desktop screen perimeter gradient glow
+                        if (window.electronAPI?.startBreakGlow) {
+                            window.electronAPI.startBreakGlow({ mode: nextMode, durationMs: breakDuration });
+                        }
+
+                        // Auto-start counting down the 5-minute break!
+                        setIsActive(true);
                     } else {
-                        // Break ended → wait for user to manually start next focus
+                        // Break ended → wait for user to personally click "繼續"
+                        setRemainingMs(0);
+                        remRef.current = 0;
+                        setIsActive(false);
+
+                        // Close break glow and alert main window
+                        if (window.electronAPI?.stopBreakGlow) {
+                            window.electronAPI.stopBreakGlow();
+                        }
+                        if (window.electronAPI?.notifyBreakCompleted) {
+                            window.electronAPI.notifyBreakCompleted();
+                        }
+
+                        triggerNotification(currentMode);
+
+                        // Strictly wait for user to return and click continue
                         setFocusEndState('break-done');
                     }
                 } else {
                     setRemainingMs(newRemaining);
+                    remRef.current = newRemaining;
 
                     // 20-20-20 護眼提醒：在專注模式剩餘 5 分鐘時觸發 (第 20 分鐘)
                     const currentMode = modeRef.current;
@@ -168,7 +198,7 @@ const useTimer = (customDurations) => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isActive]);
+    }, [isActive, mode, computeNextMode]);
 
     // Sleep-jump guard: detect when system wakes from sleep during active timing.
     // If a large time gap occurred (>30s) while the page was hidden, pause instead
@@ -277,9 +307,15 @@ const useTimer = (customDurations) => {
     // User manually starts next focus after break is done
     const handleBreakDoneStart = useCallback(() => {
         setFocusEndState('none');
+        if (window.electronAPI?.stopBreakGlow) {
+            window.electronAPI.stopBreakGlow();
+        }
         const nextMode = 'focus';
         setMode(nextMode);
-        setRemainingMs(durationsRef.current[nextMode]);
+        modeRef.current = nextMode;
+        const focusDuration = durationsRef.current[nextMode];
+        setRemainingMs(focusDuration);
+        remRef.current = focusDuration;
         setIsActive(true);
     }, []);
 
@@ -307,6 +343,10 @@ const useTimer = (customDurations) => {
         // Cancel any focus-end prompt/wait
         dismissFocusEnd();
         setIsActive(true);
+        // If starting in a break mode, open break glow window
+        if (modeRef.current !== 'focus' && window.electronAPI?.startBreakGlow) {
+            window.electronAPI.startBreakGlow({ mode: modeRef.current, durationMs: remRef.current });
+        }
     }, [dismissFocusEnd]);
 
     const pauseTimer  = useCallback(() => {
@@ -327,7 +367,13 @@ const useTimer = (customDurations) => {
         // Cancel any focus-end prompt/wait
         dismissFocusEnd();
         setIsActive(false);
-        setRemainingMs(durationsRef.current[mode]);
+        const resetDuration = durationsRef.current[mode];
+        setRemainingMs(resetDuration);
+        remRef.current = resetDuration;
+        // Stop break glow if resetting
+        if (window.electronAPI?.stopBreakGlow) {
+            window.electronAPI.stopBreakGlow();
+        }
     }, [mode, dismissFocusEnd]);
 
     const changeMode = useCallback((newMode) => {
@@ -339,8 +385,15 @@ const useTimer = (customDurations) => {
         // Cancel any focus-end prompt/wait
         dismissFocusEnd();
         setMode(newMode);
+        modeRef.current = newMode;
         setIsActive(false);
-        setRemainingMs(durationsRef.current[newMode]);
+        const newDuration = durationsRef.current[newMode];
+        setRemainingMs(newDuration);
+        remRef.current = newDuration;
+        // Stop break glow if switching modes manually
+        if (window.electronAPI?.stopBreakGlow) {
+            window.electronAPI.stopBreakGlow();
+        }
     }, [dismissFocusEnd]);
 
     return {
