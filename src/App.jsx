@@ -10,6 +10,7 @@ import useTimer from './hooks/useTimer';
 import useSettings from './hooks/useSettings';
 import useStats from './hooks/useStats';
 import useMorningIntention from './hooks/useMorningIntention';
+import useDialogFocus from './hooks/useDialogFocus';
 import { requestNotificationPermission } from './utils/notifications';
 import './App.css';
 
@@ -69,6 +70,9 @@ function App() {
     dismissForToday,
     openModalManual,
   } = useMorningIntention({ isFocusActive: isActive && mode === 'focus' });
+
+  const breakDoneRef = useRef(null);
+  useDialogFocus(breakDoneRef, focusEndState === 'break-done');
 
   // Stats listener + notification permission
   useEffect(() => {
@@ -139,11 +143,12 @@ function App() {
   // Global Keyboard Shortcuts (Space: Start/Pause/Continue, R: Reset, M: Cycle Mode)
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (e.defaultPrevented || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+      if (showMorningModal && focusEndState !== 'break-done') return;
       const activeEl = document.activeElement;
       if (
         activeEl &&
-        (activeEl.tagName === 'INPUT' ||
-          activeEl.tagName === 'TEXTAREA' ||
+        (activeEl.closest('button, a, input, textarea, select, [role="tab"], [role="dialog"]') ||
           activeEl.isContentEditable)
       ) {
         return;
@@ -179,7 +184,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, mode, focusEndState, handleBreakDoneStart, startTimer, pauseTimer, resetTimer, changeMode]);
+  }, [isActive, mode, focusEndState, showMorningModal, handleBreakDoneStart, startTimer, pauseTimer, resetTimer, changeMode]);
 
   const handleHideToTray = () => {
     if (window.electronAPI?.hideWindow) window.electronAPI.hideWindow();
@@ -267,18 +272,17 @@ function App() {
 
       {/* ── Break Done Overlay ── */}
       {focusEndState === 'break-done' && (
-        <div className="break-done-overlay">
+        <div className="break-done-overlay" ref={breakDoneRef} role="dialog" aria-modal="true" aria-labelledby="break-done-title" tabIndex={-1}>
           <div className="break-done-content">
             <div className="break-done-icon-wrap">
               <SparkleIcon size={36} className="break-done-sparkle" />
             </div>
-            <h2 className="break-done-title">休息結束！</h2>
+            <h2 className="break-done-title" id="break-done-title">休息結束！</h2>
             <p className="break-done-text">身心充飽電，準備好請點擊繼續</p>
             <button
               className="break-done-btn"
               onClick={handleBreakDoneStart}
               title="點擊開始下一段專注 (快捷鍵 Space 或 Enter)"
-              autoFocus
             >
               繼續 · 開始專注
             </button>
@@ -293,14 +297,14 @@ function App() {
 
       {/* ── Morning Intention Modal ── */}
       <MorningIntentionModal
-        visible={showMorningModal}
+        visible={showMorningModal && focusEndState !== 'break-done'}
         currentIntention={todayIntention}
         onSave={saveIntention}
         onDismiss={dismissForToday}
       />
 
       {/* ── Minimalist Content Layer ── */}
-      <div className="app-content">
+      <div className="app-content" inert={showMorningModal || focusEndState === 'break-done'}>
         
         {/* Title Bar */}
         <div className="title-bar">
@@ -336,6 +340,7 @@ function App() {
             <button
               className="tray-hide-btn"
               onClick={handleHideToTray}
+              aria-label="隱藏至系統列"
               title="隱藏至系統列"
             >
               <TrayIcon size={14} />
@@ -380,6 +385,7 @@ function App() {
                 className={`ambient-btn${isSelected ? ' active' : ''}`}
                 data-sound={key}
                 onClick={() => updateSetting('ambientSound', key)}
+                aria-pressed={isSelected}
                 title={`環境白噪音：${label}${isPlaying ? ' (播放中)' : ''}`}
               >
                 <Icon size={14} className="ambient-icon" />

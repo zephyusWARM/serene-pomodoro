@@ -1,6 +1,6 @@
 {
   "name": "serene-guardian",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "A serene health guardian that breaks prolonged sitting and protects your eyes with the 20-20-20 rule",
   "author": "Your Name",
   "private": true,
@@ -9,20 +9,28 @@
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
+    "build": "node scripts/run.mjs build",
+    "lint": "node scripts/run.mjs lint",
     "preview": "vite preview",
     "electron:dev": "concurrently \"cross-env NODE_ENV=development vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "vite build && electron-builder",
-    "electron:build:win": "vite build && electron-builder --win",
-    "electron:build:mac": "vite build && electron-builder --mac"
+    "electron:build:win": "node scripts/run.mjs dist:win",
+    "electron:build:mac": "vite build && electron-builder --mac",
+    "test": "node scripts/run.mjs unit",
+    "qa:electron": "node scripts/run.mjs build && node scripts/run.mjs electron",
+    "quality": "node scripts/run.mjs quality",
+    "skills:check": "node scripts/skills-check.mjs",
+    "skills:sync": "node scripts/skills-bootstrap.mjs",
+    "bridge": "node scripts/agent-bridge/bridge.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.63.0",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
@@ -76,5 +84,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Serene Guardian"
     }
+  },
+  "engines": {
+    "node": ">=22.20.0"
   }
 }

@@ -11,7 +11,22 @@ import './Settings.css';
 const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const panelRef = useRef(null);
+  const toggleRef = useRef(null);
   const { focusDuration, shortBreakDuration, longBreakDuration } = settings;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    panelRef.current?.querySelector('input')?.focus();
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
 
   // Click-outside-to-close (#6)
   useEffect(() => {
@@ -38,23 +53,27 @@ const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) =>
     <div className="settings-container" ref={panelRef}>
       <button
         className="settings-toggle"
+        ref={toggleRef}
         onClick={() => setIsOpen(!isOpen)}
         aria-label="偏好設定"
+        aria-expanded={isOpen}
+        aria-controls="settings-panel"
         title="偏好設定"
       >
         <SettingsIcon size={15} />
       </button>
 
       {isOpen && (
-        <div className="settings-panel">
+        <div className="settings-panel" id="settings-panel" role="region" aria-label="偏好設定">
           <div className="settings-title">
             <span>偏好設定</span>
           </div>
 
           {/* Task Name (#7) */}
           <div className="setting-group">
-            <div className="setting-label">任務名稱</div>
+            <label className="setting-label" htmlFor="task-name">任務名稱</label>
             <input
+              id="task-name"
               type="text"
               className="task-name-input"
               value={settings.taskName || ''}
@@ -122,6 +141,8 @@ const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) =>
                 </span>
                 <input
                   type="range"
+                  aria-label={label}
+                  aria-valuetext={`${value} 分鐘`}
                   className="duration-slider"
                   min={min}
                   max={max}
@@ -135,7 +156,7 @@ const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) =>
 
           <div className="setting-info">
             <SparkleIcon size={12} className="info-icon" />
-            <span>計時結束時會自動顯示全螢幕放鬆畫面</span>
+            <span>專注結束後會自動開始休息，螢幕邊緣亮起柔和光暈</span>
           </div>
         </div>
       )}

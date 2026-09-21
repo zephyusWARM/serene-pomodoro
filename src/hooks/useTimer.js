@@ -140,7 +140,7 @@ const useTimer = (customDurations) => {
                         cycleCountRef.current = nextCycle;
 
                         // Auto-switch to break (5 minutes default)
-                        const nextMode = computeNextMode('focus', nextCycle);
+                        const nextMode = computeNextMode('focus', nextCycle - 1);
                         const breakDuration = durationsRef.current[nextMode];
 
                         setMode(nextMode);
@@ -179,13 +179,11 @@ const useTimer = (customDurations) => {
                     setRemainingMs(newRemaining);
                     remRef.current = newRemaining;
 
-                    // 20-20-20 護眼提醒：在專注模式剩餘 5 分鐘時觸發 (第 20 分鐘)
+                    // Remind after 20 minutes of focus, independent of configured duration.
                     const currentMode = modeRef.current;
                     if (currentMode === 'focus' && !eyeReminderTriggeredRef.current) {
-                        const fiveMinMs = 5 * 60 * 1000;
                         const totalFocus = durationsRef.current.focus;
-                        // 只在 focus >= 20 分鐘時觸發，在剩餘 5 分鐘時
-                        if (totalFocus >= 20 * 60 * 1000 && newRemaining <= fiveMinMs) {
+                        if (totalFocus - newRemaining >= 20 * 60 * 1000) {
                             eyeReminderTriggeredRef.current = true;
                             triggerEyeReminder();
                         }
@@ -204,6 +202,7 @@ const useTimer = (customDurations) => {
     // If a large time gap occurred (>30s) while the page was hidden, pause instead
     // of letting the timer auto-complete with a huge jump.
     useEffect(() => {
+        if (window.electronAPI?.isElectron) return;
         let lastTickTime = Date.now();
         const SLEEP_THRESHOLD_MS = 30 * 1000; // 30 seconds
 
@@ -234,6 +233,24 @@ const useTimer = (customDurations) => {
         return () => {
             document.removeEventListener('visibilitychange', onVisibilityChange);
             clearInterval(tickInterval);
+        };
+    }, [isActive]);
+
+    // Electron tells us about real suspend/resume independently of page visibility.
+    // Keep the last observed countdown; sleep must not count as completed focus.
+    useEffect(() => {
+        const pauseForSleep = () => {
+            if (!isActive) return;
+            clearInterval(intervalRef.current);
+            setIsActive(false);
+            setRemainingMs(remRef.current);
+            window.electronAPI?.stopBreakGlow?.();
+        };
+        const cleanupSuspend = window.electronAPI?.onSystemSuspended?.(pauseForSleep);
+        const cleanupResume = window.electronAPI?.onSystemResumed?.(pauseForSleep);
+        return () => {
+            cleanupSuspend?.();
+            cleanupResume?.();
         };
     }, [isActive]);
 
@@ -306,6 +323,7 @@ const useTimer = (customDurations) => {
 
     // User manually starts next focus after break is done
     const handleBreakDoneStart = useCallback(() => {
+        eyeReminderTriggeredRef.current = false;
         setFocusEndState('none');
         if (window.electronAPI?.stopBreakGlow) {
             window.electronAPI.stopBreakGlow();
@@ -335,6 +353,10 @@ const useTimer = (customDurations) => {
     const progress = Math.min(100, Math.max(0, ((totalDuration - remainingMs) / totalDuration) * 100));
 
     const startTimer  = useCallback(() => {
+        if (focusEndState === 'break-done') {
+            handleBreakDoneStart();
+            return;
+        }
         // Cancel any ongoing transition if user manually starts
         if (transitionTimeoutRef.current) {
             clearTimeout(transitionTimeoutRef.current);
@@ -347,7 +369,7 @@ const useTimer = (customDurations) => {
         if (modeRef.current !== 'focus' && window.electronAPI?.startBreakGlow) {
             window.electronAPI.startBreakGlow({ mode: modeRef.current, durationMs: remRef.current });
         }
-    }, [dismissFocusEnd]);
+    }, [dismissFocusEnd, focusEndState, handleBreakDoneStart]);
 
     const pauseTimer  = useCallback(() => {
         // Cancel any ongoing transition if user pauses
@@ -356,9 +378,11 @@ const useTimer = (customDurations) => {
             setIsTransitioning(false);
         }
         setIsActive(false);
+        window.electronAPI?.stopBreakGlow?.();
     }, []);
 
     const resetTimer  = useCallback(() => {
+        eyeReminderTriggeredRef.current = false;
         // Cancel any ongoing transition
         if (transitionTimeoutRef.current) {
             clearTimeout(transitionTimeoutRef.current);
@@ -377,6 +401,7 @@ const useTimer = (customDurations) => {
     }, [mode, dismissFocusEnd]);
 
     const changeMode = useCallback((newMode) => {
+        eyeReminderTriggeredRef.current = false;
         // Cancel any ongoing transition
         if (transitionTimeoutRef.current) {
             clearTimeout(transitionTimeoutRef.current);

@@ -22,6 +22,7 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.cjs'),
             nodeIntegration: false,
             contextIsolation: true,
+            backgroundThrottling: false,
         },
         autoHideMenuBar: true,
         title: 'Serene Guardian',
@@ -33,6 +34,14 @@ function createWindow() {
     } else {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
+
+    // Windows can drop the topmost style when a window is (re)shown, e.g. restored from the tray.
+    // Re-assert it on every show so the floating widget stays above other windows.
+    const keepOnTop = () => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setAlwaysOnTop(true, 'floating');
+    };
+    mainWindow.once('ready-to-show', keepOnTop);
+    mainWindow.on('show', keepOnTop);
 
     // 攔截關閉事件，改為隱藏到系統列
     mainWindow.on('close', (event) => {
@@ -299,15 +308,18 @@ app.whenReady().then(() => {
             openAtLogin: true,
             path: app.getPath('exe'),
         });
-    } else {
-        // 開發環境確保不啟用開機自啟
-        app.setLoginItemSettings({
-            openAtLogin: false,
-        });
     }
 
     createWindow();
     createTray();
+
+    // Pause before sleep so an overdue renderer tick cannot complete a session on wake.
+    powerMonitor.on('suspend', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('system-suspended');
+        }
+        closeBreakGlowWindows();
+    });
 
     // 監聽系統從休眠/睡眠恢復事件
     // 如果恢復時 overlay 還在，自動關閉並通知 renderer
@@ -399,12 +411,14 @@ function createBreakGlowWindows() {
 
 // 關閉所有螢幕的休息光暈視窗
 function closeBreakGlowWindows() {
-    breakGlowWindows.forEach((win) => {
+    // Detach first: each window's closed listener also removes it from the live list.
+    const windowsToClose = breakGlowWindows;
+    breakGlowWindows = [];
+    windowsToClose.forEach((win) => {
         if (win && !win.isDestroyed()) {
             win.close();
         }
     });
-    breakGlowWindows = [];
 }
 
 // 同步倒數時間資訊給所有光暈視窗
@@ -485,4 +499,3 @@ ipcMain.handle('update-tray-status', (event, status) => {
         refreshTrayMenu();
     }
 });
-

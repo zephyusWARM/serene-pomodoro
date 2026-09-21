@@ -157,13 +157,14 @@
 
 /* ── Break Quote (Glass Card) ── */
 .break-quote {
-  position: absolute;
-  top: 72%;
+  /* In normal flow under the time so the whole stack stays inside the ring and
+     can never collide with the mode tabs below, whatever the quote length. */
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  width: 260px;
+  gap: 3px;
+  width: 180px;
+  margin-top: 8px;
   pointer-events: none;
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
@@ -176,30 +177,19 @@
   animation: quoteExit 0.4s ease-in forwards;
 }
 
-.quote-icon-badge {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-  margin-bottom: 2px;
-}
 
 .quote-main {
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   color: rgba(255, 255, 255, 0.8);
   letter-spacing: 0.02em;
   font-weight: 300;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 .quote-sub {
@@ -209,6 +199,13 @@
   letter-spacing: 0.05em;
   font-style: italic;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  max-width: 150px;
+  text-align: center;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 @keyframes quoteEnter {

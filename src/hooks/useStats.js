@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { readStats } from '../utils/persistence';
 
 // Get today's date in local timezone (YYYY-MM-DD)
 const getLocalToday = () => {
@@ -20,16 +21,7 @@ const pruneOldStats = (stats) => {
 
 const getInitialStats = () => {
     const today = getLocalToday();
-    const statsStr = localStorage.getItem('zen-garden-stats');
-    if (statsStr) {
-        try {
-            const stats = JSON.parse(statsStr);
-            return stats[today] || 0;
-        } catch {
-            return 0;
-        }
-    }
-    return 0;
+    return readStats(localStorage)[today] || 0;
 };
 
 const useStats = () => {
@@ -41,8 +33,7 @@ const useStats = () => {
 
     const recordFocusSession = useCallback(() => {
         const today = getLocalToday();
-        const statsStr = localStorage.getItem('zen-garden-stats');
-        let stats = statsStr ? JSON.parse(statsStr) : {};
+        let stats = readStats(localStorage);
         stats[today] = (stats[today] || 0) + 1;
         stats = pruneOldStats(stats);
         localStorage.setItem('zen-garden-stats', JSON.stringify(stats));

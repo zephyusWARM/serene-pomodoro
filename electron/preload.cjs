@@ -58,6 +58,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     },
 
+    onSystemSuspended: (callback) => {
+        const listener = () => callback();
+        ipcRenderer.on('system-suspended', listener);
+        return () => ipcRenderer.removeListener('system-suspended', listener);
+    },
+
     // 監聽系統從休眠/睡眠喚醒
     onSystemResumed: (callback) => {
         const listener = () => callback();
@@ -96,4 +102,3 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 檢查是否在 Electron 環境中
     isElectron: true,
 });
-

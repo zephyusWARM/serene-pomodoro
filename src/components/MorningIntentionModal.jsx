@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './MorningIntentionModal.css';
+import useDialogFocus from '../hooks/useDialogFocus';
 
 const DEFAULT_OPTIONS = [
   { id: 'gentle', label: '🌸 溫柔一點', text: '溫柔一點' },
@@ -32,6 +33,8 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
 
   const [confirmed, setConfirmed] = useState(false);
   const timeoutRef = useRef(null);
+  const dialogRef = useRef(null);
+  useDialogFocus(dialogRef, true);
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -79,7 +82,7 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
   };
 
   return (
-    <div className="morning-modal-card">
+    <div className="morning-modal-card" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="morning-question" tabIndex={-1}>
       {/* Close button in top-right */}
       <button
         type="button"
@@ -107,7 +110,7 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
           </div>
 
           {/* Core Question */}
-          <h2 className="morning-question">
+          <h2 className="morning-question" id="morning-question">
             「我今天想要成為<br />什麼樣的人？」
           </h2>
 
@@ -126,6 +129,7 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
                 type="button"
                 className={`preset-chip ${!isCustom && selectedText === opt.text ? 'selected' : ''}`}
                 onClick={() => handleSelectPreset(opt.text)}
+                aria-pressed={!isCustom && selectedText === opt.text}
               >
                 {opt.label}
               </button>
@@ -136,6 +140,7 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
           <div className="morning-custom-box">
             <input
               type="text"
+              aria-label="自訂今日心向"
               className={`custom-intention-input ${isCustom && customText ? 'active' : ''}`}
               placeholder="✍️ 或寫下自己的心向 (如：包容、放鬆)..."
               value={customText}

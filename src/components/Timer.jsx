@@ -33,12 +33,6 @@ const BREAK_QUOTES = [
   { category: 'vision', main: 'The best time to plant a tree was 20 years ago. The second best is now.', sub: 'Every break fuels the next breakthrough.' },
 ];
 
-const CATEGORY_ICONS = {
-  health: ShortBreakIcon,
-  love: SparkleIcon,
-  mission: FocusIcon,
-  vision: LongBreakIcon,
-};
 
 const getRandomQuote = (excludeIndex) => {
   let idx;
@@ -160,7 +154,6 @@ const Timer = ({ minutes, seconds, mode, isActive, totalDuration, remainingMs })
   }, [mode, isActive]);
 
   const quote = BREAK_QUOTES[quoteIndex];
-  const QuoteIconComponent = CATEGORY_ICONS[quote.category] || SparkleIcon;
 
   return (
     <div
@@ -228,9 +221,6 @@ const Timer = ({ minutes, seconds, mode, isActive, totalDuration, remainingMs })
         </div>
         {mode !== 'focus' && (
           <div className={`break-quote quote-${fadeState}`} key={quoteIndex}>
-            <div className="quote-icon-badge">
-              <QuoteIconComponent size={13} />
-            </div>
             <div className="quote-main">{quote.main}</div>
             <div className="quote-sub">{quote.sub}</div>
           </div>

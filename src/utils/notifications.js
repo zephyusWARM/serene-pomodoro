@@ -47,7 +47,7 @@ export const triggerNotification = (mode) => {
     // Browser / system notification fallback
     if ('Notification' in window && Notification.permission === 'granted') {
         const messages = {
-            focus: { title: '✨ 專注時間結束', body: '做得很好！已自動開始 5 分鐘休息。' },
+            focus: { title: '✨ 專注時間結束', body: '做得很好！已依照你的設定開始休息。' },
             shortBreak: { title: '🌿 休息結束', body: '請回到電腦前點擊「繼續」開始下一段專注。' },
             longBreak: { title: '🌟 長休息結束', body: '身心充飽電，準備好請點擊「繼續」！' }
         };
@@ -55,7 +55,7 @@ export const triggerNotification = (mode) => {
         try {
             new Notification(msg.title, {
                 body: msg.body,
-                icon: '/vite.svg',
+                icon: new URL('../../public/icon.png', import.meta.url).href,
                 tag: 'pomodoro-timer',
                 requireInteraction: false,
                 silent: true

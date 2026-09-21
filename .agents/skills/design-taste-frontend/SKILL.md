@@ -1,6 +1,6 @@
 ---
 name: design-taste-frontend
-description: Anti-slop frontend skill for landing pages, portfolios, and redesigns. The agent reads the brief, infers the right design direction, and ships interfaces that do not look templated. Real design systems when applicable, audit-first on redesigns, strict pre-flight check.
+description: Reference-only visual inspiration for explicitly requested landing pages or portfolios. In Serene Guardian this is not the product-UI authority; use Impeccable and the incumbent design contract first.
 ---
 
 # tasteskill: Anti-Slop Frontend Skill

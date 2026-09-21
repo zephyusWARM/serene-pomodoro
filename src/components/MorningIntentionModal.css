@@ -116,7 +116,7 @@
   color: #ffffff;
   margin: 0.35rem 0 0.15rem 0;
   text-shadow: 0 2px 14px rgba(255, 200, 120, 0.25);
-  font-family: 'Noto Sans TC', sans-serif;
+  font-family: 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
 }
 
 /* ── Philosophy Quote ── */
@@ -304,7 +304,7 @@
   letter-spacing: 0.12em;
   text-shadow: 0 0 20px rgba(255, 195, 120, 0.6);
   margin: 0;
-  font-family: 'Noto Sans TC', sans-serif;
+  font-family: 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
 }
 
 .blessing-sub {

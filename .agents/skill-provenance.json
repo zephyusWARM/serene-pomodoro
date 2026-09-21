@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "installedOn": "2026-09-21",
+  "installer": "vercel-labs/skills 1.7.0; openai skill-installer for security; official UI UX Pro Max source checkout",
+  "hashAlgorithm": "SHA256 over sorted relative path + NUL + content (text line endings normalized to LF); excludes .git, __pycache__, *.pyc and downloaded bin cache",
+  "skills": {
+    "accessibility": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/accessibility/SKILL.md",
+      "computedHash": "88c64dead9bb55925c7b983f5fd95cfecf30bd8c076fd384cdb17019d1becd87",
+      "localTreeSha256": "e4b7f13852cb626bb03d52ec8d0c1e74ac67bfbffc47a99eaa8e489f6730ea3e"
+    },
+    "code-review-and-quality": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/code-review-and-quality/SKILL.md",
+      "computedHash": "6231479cc74c7ed70a5618b81b3f94034d9806c0319a1a23d15f9b94a368c581",
+      "localTreeSha256": "51e39580cd1511ec93a41dd853433a76bd881444930daccbe128143b367007a3"
+    },
+    "constraint-driven-development": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/constraint-driven-development/SKILL.md",
+      "computedHash": "0f760f914c6321cbdee7d47773ddb5b27a809f79049010b4aeead9084f38133b",
+      "localTreeSha256": "be3fb9c80f0dd47ac093c9769d469fd5c45fcde760667903d52f732de6242747"
+    },
+    "design-taste-frontend": {
+      "source": "Leonxlnx/taste-skill",
+      "provenance": "Existing project install; original commit not recorded.",
+      "localAdaptation": "Description scoped to reference-only, not product-UI authority.",
+      "localTreeSha256": "4896559a2a02492d1c9129b42419762c7f0735787cdfabae6c62189d405294bd"
+    },
+    "high-end-visual-design": {
+      "source": "Leonxlnx/taste-skill",
+      "provenance": "Existing project install; original commit not recorded.",
+      "localTreeSha256": "78975396a05291e853e4de4a410116cc93f8b20a84f84a85c1eab0d401e440ae"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "version": "4.3.1",
+      "provenance": "Existing project install; original commit not recorded. Preserved Codex agents/openai.yaml and merged Claude user-invocable/argument-hint/license metadata.",
+      "localTreeSha256": "1cdedd6c428a2c7e3b2be2e82b14fafc35003bccdddfc5a41bccd7c8c44536be"
+    },
+    "minimalist-ui": {
+      "source": "Leonxlnx/taste-skill",
+      "provenance": "Existing project install; original commit not recorded.",
+      "localTreeSha256": "54a22e7cdec0bd7fd62157f2340580edb81aca945e027d0e4947db256e7dcbe1"
+    },
+    "redesign-existing-projects": {
+      "source": "Leonxlnx/taste-skill",
+      "provenance": "Existing project install; original commit not recorded.",
+      "localTreeSha256": "9d2c6a925e7f052954d86e59e92c953a5dae05cc580ae59b1751376d31f56fa4"
+    },
+    "security-best-practices": {
+      "source": "openai/skills",
+      "sourceHeadObserved": "49f948faa9258a0c61caceaf225e179651397431",
+      "skillPath": "skills/.curated/security-best-practices/SKILL.md",
+      "localAdaptation": "Explicit-only Claude disable-model-invocation and Codex allow_implicit_invocation:false metadata.",
+      "localTreeSha256": "c0ab6cdfe0c2dcaf388af29a0cf80937ff2dce04b76c9eae3d1c5830efc5be72"
+    },
+    "ui-screenshots": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/ui-screenshots/SKILL.md",
+      "computedHash": "a69d97ff390d75e41f417180702b2e7269a81c053a016cecfc1f046266e41bde",
+      "localTreeSha256": "a5245dbb954a44ef4d6f0bd3c19339bc7c0da22b36be9992f5ef576fc6e79a1f"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "version": "2.13.0",
+      "commit": "0d2b646cb6f48d8478f41417b2e8a5a30fd59175",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "localAdaptation": "Replaced Claude plugin root command prefix with canonical project .agents path. All data/scripts/references copied from fresh official checkout.",
+      "localTreeSha256": "1c463f72040d50b4fe8103d3da37f202ae8d4c8ef296f3d7710727a1baa46600"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "6b526d013e28073246a36f99b529bc43745d30832ecfa8217b359c34f260ca6b",
+      "localTreeSha256": "4942be5493fb0b051433bd2851cfd07a093ec2e67019db2e0142dead580fc3ca"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "d8e7d3afe37dcc8a97b99ffb5afdb4d0919ae0092ea8b68f44eb201f035e33ac",
+      "localTreeSha256": "d5cb29ea15d5ceeb4ef0802e75c17ef4287c6f60ff8aa05e46c6080f615178bc"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+# Project quality contract
+
+`npm run quality` is the local acceptance gate: skill integrity/discovery, ESLint (zero warnings), Node persistence tests, production Vite build, and real Electron Playwright acceptance (one worker, zero retries, forbidOnly).
+
+- Never make checks pass by deleting assertions, skipping/focusing tests, suppressing runtime errors, disabling accessibility rules, lowering thresholds, adding broad ignores or replacing production behavior with mocks. Correct the implementation. Any intentionally changed requirement needs evidence and a recorded contract change, independently reviewed.
+- Preserve context isolation and disabled Node integration in renderer windows. Tests use a fresh profile, never the user's real settings. Development/QA must not alter Windows startup registration.
+- Focus -> short/short/short/long breaks on four completed sessions; exactly one stats increment each. Breaks wait for explicit continuation. Pause/reset/mode switch clean up glow. Hidden-window countdown continues; suspend pauses without crediting sleep as focus.
+- Settings, daily completion stats and morning intention persist. Current countdown/cycle position are session state, reset on process restart. Malformed persisted settings/stats must recover to validated defaults without crashing.
+- Visible keyboard focus; dialogs isolate and restore focus; native control activation must not trigger global timer shortcuts. WCAG A/AA axe violations fail on exercised states; human visual review covers translucent backgrounds and axe incomplete findings. New/changed controls should meet 44px target guidance; do not claim an existing whole-app accessibility certification.
+- Save renderer/main errors, request failures, axe results and real Electron screenshots. No unexpected errors accepted. Open screenshots and inspect content/clipping before acceptance. Web-only testing cannot substitute for Electron.
+- One canonical skill tree `.agents/skills`; adapter paths must resolve to it. Keep upstream provenance and local modifications inspectable. Restore/reconcile links after checkout using the documented sync command.
+- Independent review is required before acceptance. Report exact executed gates, remaining manual checks, dependency advisories and agent-specific runtime limits. Never claim OS notification delivery, hardware sleep, multi-display interaction, packaging or other agents were verified from renderer tests alone.

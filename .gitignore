@@ -29,3 +29,13 @@ __pycache__/
 release
 dist
 node_modules
+
+# Regenerated agent links; canonical sources are .agents/skills.
+/.claude/skills/*
+/.agent/skills/*
+/.gemini/skills/*
+/artifacts/
+/test-results/
+/.agent-bridge/
+# Temporary files left by FUSE mounts (e.g. an agent VM editing this folder).
+.fuse_hidden*

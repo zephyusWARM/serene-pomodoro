@@ -420,7 +420,7 @@ button, select, input[type="range"] {
   flex-direction: column;
   align-items: center;
   gap: 1.1rem;
-  animation: transitionPulse 3s ease-in-out infinite;
+  /* Keep the continue button stationary and reliably targetable. */
 }
 
 .break-done-icon-wrap {
