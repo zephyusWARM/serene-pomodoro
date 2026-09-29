@@ -50,8 +50,7 @@ function createWindow() {
         if (!mainWindow || mainWindow.isDestroyed()) return;
         mainWindow.webContents.send('window-visibility', mainWindow.isVisible() && !mainWindow.isMinimized());
     };
-    // 'focus' re-sends the real state as a self-heal in case a platform skips a restore event.
-    ['show', 'hide', 'minimize', 'restore', 'focus'].forEach((event) => mainWindow.on(event, sendVisibility));
+    ['show', 'hide', 'minimize', 'restore'].forEach((event) => mainWindow.on(event, sendVisibility));
     mainWindow.webContents.on('did-finish-load', sendVisibility);
 
     // 攔截關閉事件，改為隱藏到系統列
