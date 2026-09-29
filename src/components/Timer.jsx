@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FocusIcon, ShortBreakIcon, LongBreakIcon, SparkleIcon } from './Icons';
+import useWindowVisible from '../hooks/useWindowVisible';
 import './Timer.css';
 
 // SVG params: r=110, circumference = 2π×110 ≈ 691.15
 const RADIUS = 110;
 const CIRC = 2 * Math.PI * RADIUS;
+// Redraw once the arc tip has moved this far (in device pixels): below what anti-aliasing can show.
+const RING_STEP_DEVICE_PX = 0.1;
+const FRAME_MS = 1000 / 60;
 
 // ── Curated Health & Life Quotes ──
 const BREAK_QUOTES = [
@@ -46,51 +50,47 @@ const Timer = ({ minutes, seconds, mode, isActive, totalDuration, remainingMs })
   const minStr = String(minutes).padStart(2, '0');
   const secStr = String(seconds).padStart(2, '0');
 
-  // Refs for rAF loop
   const ringGlowRef = useRef(null);
   const ringCircleRef = useRef(null);
   const orbRef = useRef(null);
   const orbGlowRef = useRef(null);
-  const rafRef = useRef(null);
-  const displayRemainingRef = useRef(remainingMs);
-  const authoritativeRemainingRef = useRef(remainingMs);
+  const windowVisible = useWindowVisible();
 
-  // Always keep authoritative remaining up to date
+  // When the latest authoritative value arrived (or counting started from it). Effects re-run for
+  // other reasons (visibility, duration) must not re-date it.
+  const anchorRef = useRef({ remaining: remainingMs, at: 0 });
   useEffect(() => {
-    authoritativeRemainingRef.current = remainingMs;
-  }, [remainingMs]);
+    anchorRef.current = { remaining: remainingMs, at: performance.now() };
+  }, [remainingMs, isActive]);
 
-  // ProMotion 60/120fps rendering loop
+  // Progress ring renderer.
+  // Previously a requestAnimationFrame loop ran forever — paused, idle or hidden in the tray — which
+  // on its own kept the window producing a new frame every display refresh. The ring position is now
+  // extrapolated from the latest authoritative countdown value (exact at any instant instead of eased
+  // toward it) and written only when the arc tip has moved by a sub-perceptual step, a fraction of a
+  // device pixel: a 25-minute session advances the tip ~0.03 px per frame. Short sessions move faster
+  // and fall back to every animation frame. Paused or hidden, a single draw per change keeps it correct.
   useEffect(() => {
-    let lastTime = performance.now();
+    const { remaining: anchorRemaining, at: anchorTime } = anchorRef.current;
+    let rafId = 0;
+    let timeoutId = 0;
+    let lastOffset = null;
+    let lastOrb = null;
 
-    const tick = (now) => {
-      const dt = now - lastTime;
-      lastTime = now;
+    const draw = () => {
+      rafId = 0;
+      const display = isActive
+        ? Math.max(0, anchorRemaining - (performance.now() - anchorTime))
+        : anchorRemaining;
 
-      if (isActive) {
-        // Linearly decrease visual time
-        displayRemainingRef.current = Math.max(0, displayRemainingRef.current - dt);
-
-        // Soft-sync with authoritative React state (useTimer)
-        const diff = displayRemainingRef.current - authoritativeRemainingRef.current;
-        if (Math.abs(diff) > 500) {
-          // Snap if huge jump (e.g. wake from sleep or slider dragged)
-          displayRemainingRef.current = authoritativeRemainingRef.current;
-        } else {
-          // Micro-correction (lerp)
-          displayRemainingRef.current -= diff * 0.05;
-        }
-      } else {
-        // Paused -> precisely match
-        displayRemainingRef.current = authoritativeRemainingRef.current;
-      }
-
-      const p = Math.min(100, Math.max(0, ((totalDuration - displayRemainingRef.current) / totalDuration) * 100));
+      const p = Math.min(100, Math.max(0, ((totalDuration - display) / totalDuration) * 100));
       const off = CIRC - (CIRC * p) / 100;
 
-      if (ringGlowRef.current) ringGlowRef.current.style.strokeDashoffset = off;
-      if (ringCircleRef.current) ringCircleRef.current.style.strokeDashoffset = off;
+      if (off !== lastOffset) {
+        lastOffset = off;
+        if (ringGlowRef.current) ringGlowRef.current.style.strokeDashoffset = off;
+        if (ringCircleRef.current) ringCircleRef.current.style.strokeDashoffset = off;
+      }
 
       // Position leading orb at the moving stroke tip
       if (orbRef.current && orbGlowRef.current) {
@@ -98,30 +98,47 @@ const Timer = ({ minutes, seconds, mode, isActive, totalDuration, remainingMs })
           const angle = (p / 100) * 2 * Math.PI;
           const orbX = (120 + RADIUS * Math.cos(angle)).toFixed(2);
           const orbY = (120 + RADIUS * Math.sin(angle)).toFixed(2);
+          const orbKey = `${orbX},${orbY},${isActive}`;
+          if (orbKey !== lastOrb) {
+            lastOrb = orbKey;
+            orbRef.current.setAttribute('cx', orbX);
+            orbRef.current.setAttribute('cy', orbY);
+            orbRef.current.style.opacity = '1';
 
-          orbRef.current.setAttribute('cx', orbX);
-          orbRef.current.setAttribute('cy', orbY);
-          orbRef.current.style.opacity = '1';
-
-          orbGlowRef.current.setAttribute('cx', orbX);
-          orbGlowRef.current.setAttribute('cy', orbY);
-          orbGlowRef.current.style.opacity = isActive ? '0.85' : '0.45';
-        } else {
+            orbGlowRef.current.setAttribute('cx', orbX);
+            orbGlowRef.current.setAttribute('cy', orbY);
+            orbGlowRef.current.style.opacity = isActive ? '0.85' : '0.45';
+          }
+        } else if (lastOrb !== 'hidden') {
+          lastOrb = 'hidden';
           orbRef.current.style.opacity = '0';
           orbGlowRef.current.style.opacity = '0';
         }
       }
 
-      rafRef.current = requestAnimationFrame(tick);
+      // Hidden: one draw per countdown tick keeps the ring current for the moment it is shown again,
+      // without any sub-second redraws.
+      if (isActive && windowVisible && display > 0) schedule();
     };
 
-    rafRef.current = requestAnimationFrame(tick);
+    const schedule = () => {
+      const devicePxPerMs = (CIRC / totalDuration) * (window.devicePixelRatio || 1);
+      const wait = RING_STEP_DEVICE_PX / devicePxPerMs;
+      if (wait <= FRAME_MS) {
+        rafId = requestAnimationFrame(draw);
+      } else {
+        timeoutId = setTimeout(() => { rafId = requestAnimationFrame(draw); }, wait);
+      }
+    };
+
+    draw();
 
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafId) cancelAnimationFrame(rafId);
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isActive, totalDuration]);
-  
+  }, [isActive, totalDuration, remainingMs, windowVisible]);
+
   const [quoteIndex, setQuoteIndex] = useState(() => getRandomQuote(-1));
   const [fadeState, setFadeState] = useState('in'); // 'in' | 'out'
   const [prevMode, setPrevMode] = useState(mode);

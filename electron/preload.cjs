@@ -99,6 +99,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         };
     },
 
+    // 主視窗實際顯示/隱藏 (系統列、最小化)；僅用於暫停看不見的裝飾動畫，計時不受影響
+    onWindowVisibility: (callback) => {
+        const listener = (event, visible) => callback(visible);
+        ipcRenderer.on('window-visibility', listener);
+        return () => ipcRenderer.removeListener('window-visibility', listener);
+    },
+
     // 檢查是否在 Electron 環境中
     isElectron: true,
 });

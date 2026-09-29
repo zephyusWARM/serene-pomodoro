@@ -43,6 +43,17 @@ function createWindow() {
     mainWindow.once('ready-to-show', keepOnTop);
     mainWindow.on('show', keepOnTop);
 
+    // backgroundThrottling is off so the countdown stays exact in the tray, which also keeps the
+    // renderer drawing frames while hidden. Tell it the real on-screen state so it can pause purely
+    // decorative animation (timekeeping is never gated on this).
+    const sendVisibility = () => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        mainWindow.webContents.send('window-visibility', mainWindow.isVisible() && !mainWindow.isMinimized());
+    };
+    // 'focus' re-sends the real state as a self-heal in case a platform skips a restore event.
+    ['show', 'hide', 'minimize', 'restore', 'focus'].forEach((event) => mainWindow.on(event, sendVisibility));
+    mainWindow.webContents.on('did-finish-load', sendVisibility);
+
     // 攔截關閉事件，改為隱藏到系統列
     mainWindow.on('close', (event) => {
         if (!app.isQuiting) {
@@ -55,6 +66,13 @@ function createWindow() {
         mainWindow = null;
     });
 }
+
+// Windows: build the context menu when it is opened (right-click) instead of rebuilding a native
+// menu every second while the countdown runs; it always shows the current time when opened.
+// Other platforms keep the attached context menu (Linux requires it; macOS opens it on left-click).
+const buildMenuOnDemand = process.platform === 'win32';
+let lastTooltip = '';
+let openTrayMenu = null; // keep the popped-up menu referenced while it is open
 
 let currentTrayStatus = {
     timeText: '',
@@ -74,12 +92,19 @@ function refreshTrayMenu() {
     if (currentTrayStatus.intentionText) {
         tooltip += `\n✨ ${currentTrayStatus.intentionText}`;
     }
-    try {
-        tray.setToolTip(tooltip);
-    } catch (_) {
-        // ignore
+    if (tooltip !== lastTooltip) {
+        try {
+            tray.setToolTip(tooltip);
+            lastTooltip = tooltip;
+        } catch (_) {
+            // ignore
+        }
     }
 
+    if (!buildMenuOnDemand) tray.setContextMenu(buildTrayMenu());
+}
+
+function buildTrayMenu() {
     const modeLabels = {
         focus: '🍅 專注時段',
         shortBreak: '🌿 短休息',
@@ -161,7 +186,7 @@ function refreshTrayMenu() {
         }
     });
 
-    tray.setContextMenu(Menu.buildFromTemplate(menuItems));
+    return Menu.buildFromTemplate(menuItems);
 }
 
 // 建立系統列圖示 (Tray)
@@ -188,6 +213,13 @@ function createTray() {
                 refreshTrayMenu();
             }
         });
+
+        if (buildMenuOnDemand) {
+            tray.on('right-click', () => {
+                openTrayMenu = buildTrayMenu();
+                tray.popUpContextMenu(openTrayMenu);
+            });
+        }
 
         // 雙擊切換顯示/隱藏
         tray.on('double-click', () => {

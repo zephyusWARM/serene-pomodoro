@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { isWindowVisible, subscribeWindowVisibility } from '../utils/windowVisibility';
 import './TimeTraveler.css';
 
 export default function TimeTraveler({ active }) {
@@ -41,7 +42,7 @@ export default function TimeTraveler({ active }) {
     let lastTime = performance.now();
     
     const render = (time) => {
-      if (document.hidden || isPaused) {
+      if (document.hidden || isPaused || !isWindowVisible()) {
         return;
       }
 
@@ -104,24 +105,29 @@ export default function TimeTraveler({ active }) {
       animationFrameId = requestAnimationFrame(render);
     };
 
-    // Optimize battery: pause rendering when window is minimized or hidden in tray
+    // Optimize battery: pause rendering when window is minimized or hidden in tray.
+    // With backgroundThrottling off, Electron keeps document.hidden false for a hidden window,
+    // so the real on-screen state comes from windowVisibility.
     const handleVisibilityChange = () => {
-      if (document.hidden) {
+      if (document.hidden || !isWindowVisible()) {
         isPaused = true;
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
       } else {
         isPaused = false;
         lastTime = performance.now();
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
         animationFrameId = requestAnimationFrame(render);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    const unsubscribeWindowVisibility = subscribeWindowVisibility(handleVisibilityChange);
     
     animationFrameId = requestAnimationFrame(render);
     
     return () => {
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      unsubscribeWindowVisibility();
       cancelAnimationFrame(animationFrameId);
     };
   }, [active]);

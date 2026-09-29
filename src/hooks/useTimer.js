@@ -10,6 +10,11 @@ const getDurations = (d) => ({
 
 
 
+// Delay until the displayed mm:ss next changes (the display floors remaining time to whole
+// seconds). Ticking exactly on those boundaries flips the digits on time instead of up to one
+// polling interval late, and re-renders once per second instead of four times.
+const msUntilNextSecond = (remaining) => (remaining % 1000) + 1;
+
 const useTimer = (customDurations) => {
     const [mode, setMode] = useState('focus');
     const [isActive, setIsActive] = useState(false);
@@ -32,6 +37,7 @@ const useTimer = (customDurations) => {
     const startTimeRef = useRef(null);
     const remainingAtStartRef = useRef(remainingMs);
     const intervalRef = useRef(null);
+    const tickRef = useRef(null); // the running countdown's tick; null while not counting down
     const modeRef = useRef(mode);
     const durationsRef = useRef(getDurations(customDurations));
     const transitionTimeoutRef = useRef(null);
@@ -81,6 +87,11 @@ const useTimer = (customDurations) => {
                 // Re-sync the base elapsed calculation immediately so no jumps happen
                 startTimeRef.current = Date.now();
                 remainingAtStartRef.current = newDurations[mode];
+                // Re-align the next tick to the new value's second boundaries
+                if (tickRef.current) {
+                    clearTimeout(intervalRef.current);
+                    intervalRef.current = setTimeout(tickRef.current, msUntilNextSecond(newDurations[mode]));
+                }
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,12 +129,13 @@ const useTimer = (customDurations) => {
             startTimeRef.current = Date.now();
             remainingAtStartRef.current = remainingMs;
 
-            intervalRef.current = setInterval(() => {
+            const tick = () => {
                 const elapsed = Date.now() - startTimeRef.current;
                 const newRemaining = remainingAtStartRef.current - elapsed;
 
                 if (newRemaining <= 0) {
-                    clearInterval(intervalRef.current);
+                    intervalRef.current = null;
+                    tickRef.current = null;
 
                     const currentMode = modeRef.current;
 
@@ -178,6 +190,7 @@ const useTimer = (customDurations) => {
                 } else {
                     setRemainingMs(newRemaining);
                     remRef.current = newRemaining;
+                    intervalRef.current = setTimeout(tick, msUntilNextSecond(newRemaining));
 
                     // Remind after 20 minutes of focus, independent of configured duration.
                     const currentMode = modeRef.current;
@@ -189,11 +202,15 @@ const useTimer = (customDurations) => {
                         }
                     }
                 }
-            }, 250);
+            };
+
+            tickRef.current = tick;
+            intervalRef.current = setTimeout(tick, msUntilNextSecond(remainingMs));
         }
 
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            tickRef.current = null;
+            if (intervalRef.current) clearTimeout(intervalRef.current);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isActive, mode, computeNextMode]);
@@ -241,7 +258,7 @@ const useTimer = (customDurations) => {
     useEffect(() => {
         const pauseForSleep = () => {
             if (!isActive) return;
-            clearInterval(intervalRef.current);
+            clearTimeout(intervalRef.current);
             setIsActive(false);
             setRemainingMs(remRef.current);
             window.electronAPI?.stopBreakGlow?.();
@@ -376,6 +393,15 @@ const useTimer = (customDurations) => {
         if (transitionTimeoutRef.current) {
             clearTimeout(transitionTimeoutRef.current);
             setIsTransitioning(false);
+        }
+        // Keep the exact remaining time (ticks only land on displayed-second boundaries), so pausing
+        // never gives time back and the ring does not step backwards.
+        if (tickRef.current) {
+            const exact = remainingAtStartRef.current - (Date.now() - startTimeRef.current);
+            if (exact > 0) {
+                setRemainingMs(exact);
+                remRef.current = exact;
+            }
         }
         setIsActive(false);
         window.electronAPI?.stopBreakGlow?.();

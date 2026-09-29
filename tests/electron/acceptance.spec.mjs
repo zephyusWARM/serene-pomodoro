@@ -38,7 +38,7 @@ async function windows() {
   })));
 }
 async function jump(ms) {
-  // Change wall time only; real production setInterval and IPC still run.
+  // Change wall time only; real production timers and IPC still run.
   await page.evaluate(delta => {
     window.__qaOffset = (window.__qaOffset || 0) + delta;
     window.__qaNow ??= Date.now.bind(Date);
@@ -94,11 +94,14 @@ test('real desktop lifecycle, background countdown, pause/reset and preferences 
   await expect(timer()).toHaveAttribute('data-active', 'true');
   await page.locator('.tray-hide-btn').click();
   expect((await windows())[0].visible).toBe(false);
+  // Hidden widget freezes decorative animation (the countdown below must keep running).
+  await expect(page.locator('html')).toHaveAttribute('data-window-hidden');
   const before = await page.locator('.time').innerText();
   await page.waitForTimeout(1600);
   expect(await page.locator('.time').innerText()).not.toBe(before);
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show());
   await expect.poll(async () => (await windows())[0], 'widget is visible and still topmost after restore').toMatchObject({ visible: true, top: true });
+  await expect(page.locator('html')).not.toHaveAttribute('data-window-hidden');
   await start();
   await expect(timer()).toHaveAttribute('data-active', 'false');
   const paused = await page.locator('.time').innerText();
