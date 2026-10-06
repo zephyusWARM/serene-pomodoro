@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { SparkleIcon } from './Icons';
 import './FocusEndPrompt.css';
 
 /**
@@ -35,7 +36,7 @@ function FocusEndContent({ onRest, onWait }) {
     <div className="focus-end-overlay">
       <div className="focus-end-content">
         {/* Icon */}
-        <div className="focus-end-icon">🎉</div>
+        <SparkleIcon size={32} className="focus-end-icon" />
 
         {/* Title */}
         <h2 className="focus-end-title">專注結束！</h2>
@@ -50,7 +51,7 @@ function FocusEndContent({ onRest, onWait }) {
               onRest();
             }}
           >
-            🌿 開始休息 ({countdown}s)
+            開始休息 ({countdown}s)
           </button>
           <button
             className="focus-end-btn wait-btn"
@@ -59,7 +60,7 @@ function FocusEndContent({ onRest, onWait }) {
               onWait();
             }}
           >
-            ⏳ 再等一分鐘
+            再等一分鐘
           </button>
         </div>
       </div>

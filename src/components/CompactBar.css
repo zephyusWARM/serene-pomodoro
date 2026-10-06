@@ -1,0 +1,108 @@
+/* ── Island ─────────────────────────────────────────────────────
+   248 × 64 capsule. The window itself becomes the pill. */
+.app[data-compact="true"] {
+  border-radius: 32px;
+}
+
+.compact-bar {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 0 11px;
+  transition: opacity 0.2s var(--ease);
+}
+
+.compact-ring {
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+  -webkit-app-region: drag;
+}
+
+.compact-ring-bg {
+  fill: none;
+  stroke: var(--fill-2);
+  stroke-width: 3;
+}
+
+.compact-ring-fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 100.53;
+  /* remainingMs ticks once a second, so a one-second linear transition reads as continuous. */
+  transition: stroke-dashoffset 1s linear, stroke 0.6s var(--ease);
+}
+
+.compact-readout {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.compact-time {
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.compact-mode {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink-2);
+}
+
+.compact-play {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: var(--on-ink);
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-spring), background 0.3s var(--ease), color 0.3s var(--ease);
+}
+
+.compact-play::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+}
+
+.compact-play:hover { background: var(--cream-hi); transform: scale(1.04); }
+.compact-play:active { transform: scale(0.94); }
+
+.compact-play.is-active {
+  background: rgb(var(--accent-rgb) / 0.2);
+  color: var(--accent);
+}
+
+.compact-play.is-active:hover {
+  background: rgb(var(--accent-rgb) / 0.3);
+}
+
+.compact-play:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.compact-expand {
+  width: 32px;
+  height: 32px;
+}

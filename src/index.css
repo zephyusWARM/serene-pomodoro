@@ -1,49 +1,52 @@
-/* Bundled locally: the desktop app must render identically offline. */
+/* Bundled locally: the desktop app must render identically offline.
+   Nunito (SIL OFL): rounded terminals read as soft and human; its figures are tabular, so the clock never jitters. */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Nunito';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 1000;
   font-display: swap;
-  src: url('../electron/fonts/InterVariable-latin.woff2') format('woff2');
+  src: url('../electron/fonts/NunitoVariable-latin.woff2') format('woff2');
 }
 
-/* ── Apple & Material You Inspired Design Tokens ── */
+/* ── Design tokens ──────────────────────────────────────────────
+   A warm, low light: espresso-dark surface, cream ink, and one soft accent that follows the mode.
+   Light is the only decoration: a gentle glow that travels with the countdown. */
 :root {
-  /* Mode Accent Colors (Vibrant Luminous Halos) */
-  --color-focus:         #00f2fe;
-  --color-focus-glow:    rgba(0, 242, 254, 0.45);
-  --color-focus-grad:    linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+  --surface-rgb: 24 18 15;
+  --raised-rgb:  40 30 25;
+  --surface:   rgb(var(--surface-rgb));
+  --raised:    rgb(var(--raised-rgb));
+  --ink:       #f8efe3;
+  --ink-2:     #dccfbe;
+  --ink-3:     #b8aa98;
+  --on-ink:    #2b1d14;
+  --cream-hi:  #fffaf1;
 
-  --color-break:         #ffb347;
-  --color-break-glow:    rgba(255, 179, 71, 0.45);
-  --color-break-grad:    linear-gradient(135deg, #ffcc33 0%, #ffb347 100%);
+  --fill-1:    rgb(255 236 210 / 0.08);
+  --fill-2:    rgb(255 236 210 / 0.13);
+  --fill-3:    rgb(255 236 210 / 0.19);
+  --hairline:  rgb(255 236 210 / 0.13);
+  --shadow-rgb: 20 9 3;
 
-  --color-long:          #c471ed;
-  --color-long-glow:     rgba(196, 113, 237, 0.45);
-  --color-long-grad:     linear-gradient(135deg, #f64f59 0%, #c471ed 50%, #12c2e9 100%);
+  --accent-rgb: 255 171 100;
+  --accent:     rgb(var(--accent-rgb));
 
-  /* Apple Liquid Glass Layers */
-  --glass-base:          rgba(10, 16, 26, 0.65);
-  --glass-card:          rgba(18, 26, 40, 0.55);
-  --glass-pill:          rgba(255, 255, 255, 0.08);
-  --glass-pill-hover:    rgba(255, 255, 255, 0.14);
-  --glass-pill-active:   rgba(255, 255, 255, 0.22);
-  --glass-border:        rgba(255, 255, 255, 0.14);
-  --glass-border-subtle: rgba(255, 255, 255, 0.08);
-  --glass-specular:      rgba(255, 255, 255, 0.35);
-  --glass-blur:          28px;
+  --font: 'Nunito', 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC',
+          -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* Typography */
-  --text-primary:        rgba(255, 255, 255, 0.96);
-  --text-secondary:      rgba(255, 255, 255, 0.62);
-  --text-tertiary:       rgba(255, 255, 255, 0.38);
+  /* Exponential ease-out for state changes; a slightly quicker curve, with no overshoot, for things that move. */
+  --ease:        cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Apple Spring & Motion Physics */
-  --ease-spring:         cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-apple:          cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-smooth:         cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-out-expo:       cubic-bezier(0.19, 1, 0.22, 1);
+  --radius-window: 28px;
 }
+
+/* Mode accents, matched to the three ambient scenes: apricot, sage, lavender. */
+/* --accent is re-derived here: a custom property that refers to another is resolved where it is
+   declared, so without this every descendant would keep the :root (focus) colour. */
+[data-mode="focus"]      { --accent-rgb: 255 171 100; --accent: rgb(var(--accent-rgb)); }
+[data-mode="shortBreak"] { --accent-rgb: 142 201 163; --accent: rgb(var(--accent-rgb)); }
+[data-mode="longBreak"]  { --accent-rgb: 190 166 235; --accent: rgb(var(--accent-rgb)); }
 
 /* ── Reset ── */
 *, *::before, *::after {
@@ -53,15 +56,16 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: transparent;
-  color: var(--text-primary);
+  color: var(--ink);
   overflow: hidden;
   user-select: none;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+  font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
+  caret-color: var(--accent);
 }
 
 #root {
@@ -72,21 +76,49 @@ body {
   align-items: center;
 }
 
+button {
+  font-family: inherit;
+  color: inherit;
+}
+
 /* Keyboard focus must remain visible over the application's translucent surfaces. */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--text-primary);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 
-/* ── Refined Apple-style Scrollbar ── */
+/* Text fields: the ring is the accent, drawn flush so it reads as one edge, not two. */
+input[type="text"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+::selection {
+  background: rgb(var(--accent-rgb) / 0.4);
+  color: var(--ink);
+}
+
+/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.35); }
+::-webkit-scrollbar-thumb { background: var(--fill-3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(255 255 255 / 0.32); }
+
+/* Screen-reader-only text that must stay in the accessibility tree. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* Widget hidden in the tray or minimized: nobody can see decorative motion, so freeze it instead of
    rendering frames for an invisible window. Animations resume from the same frame when shown. */
@@ -94,4 +126,12 @@ html[data-window-hidden] *,
 html[data-window-hidden] *::before,
 html[data-window-hidden] *::after {
   animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

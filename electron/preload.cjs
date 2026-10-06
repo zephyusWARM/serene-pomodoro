@@ -15,6 +15,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return ipcRenderer.invoke('show-eye-reminder');
     },
 
+    // 島嶼模式：把主視窗收成膠囊 (true) 或展開回完整卡片 (false)
+    setCompact: (island) => {
+        return ipcRenderer.invoke('set-compact', island === true);
+    },
+
     // 隱藏主視窗至系統列
     hideWindow: () => {
         return ipcRenderer.invoke('hide-window');

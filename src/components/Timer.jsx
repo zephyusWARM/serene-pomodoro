@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FocusIcon, ShortBreakIcon, LongBreakIcon, SparkleIcon } from './Icons';
 import useWindowVisible from '../hooks/useWindowVisible';
 import './Timer.css';
 
-// SVG params: r=110, circumference = 2π×110 ≈ 691.15
+// SVG params (viewBox 240, drawn at 224px): r=110, circumference = 2π×110 ≈ 691.15
 const RADIUS = 110;
 const CIRC = 2 * Math.PI * RADIUS;
 // Redraw once the arc tip has moved this far (in device pixels): below what anti-aliasing can show.
@@ -50,7 +49,6 @@ const Timer = ({ minutes, seconds, mode, isActive, totalDuration, remainingMs })
   const minStr = String(minutes).padStart(2, '0');
   const secStr = String(seconds).padStart(2, '0');
 
-  const ringGlowRef = useRef(null);
   const ringCircleRef = useRef(null);
   const orbRef = useRef(null);
   const orbGlowRef = useRef(null);
@@ -88,13 +86,12 @@ const Timer = ({ minutes, seconds, mode, isActive, totalDuration, remainingMs })
 
       if (off !== lastOffset) {
         lastOffset = off;
-        if (ringGlowRef.current) ringGlowRef.current.style.strokeDashoffset = off;
         if (ringCircleRef.current) ringCircleRef.current.style.strokeDashoffset = off;
       }
 
       // Position leading orb at the moving stroke tip
       if (orbRef.current && orbGlowRef.current) {
-        if (p > 0.3 && p < 99.8) {
+        if (p < 99.8) {
           const angle = (p / 100) * 2 * Math.PI;
           const orbX = (120 + RADIUS * Math.cos(angle)).toFixed(2);
           const orbY = (120 + RADIUS * Math.sin(angle)).toFixed(2);
@@ -107,7 +104,7 @@ const Timer = ({ minutes, seconds, mode, isActive, totalDuration, remainingMs })
 
             orbGlowRef.current.setAttribute('cx', orbX);
             orbGlowRef.current.setAttribute('cy', orbY);
-            orbGlowRef.current.style.opacity = isActive ? '0.85' : '0.45';
+            orbGlowRef.current.style.opacity = isActive ? '1' : '0.55';
           }
         } else if (lastOrb !== 'hidden') {
           lastOrb = 'hidden';
@@ -180,37 +177,20 @@ const Timer = ({ minutes, seconds, mode, isActive, totalDuration, remainingMs })
     >
       <svg
         className="progress-ring"
-        width="240"
-        height="240"
+        width="224"
+        height="224"
         viewBox="0 0 240 240"
+        aria-hidden="true"
       >
         <defs>
-          <linearGradient id="focusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#00f2fe" />
-            <stop offset="100%" stopColor="#4facfe" />
-          </linearGradient>
-          <linearGradient id="focusGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#38ef7d" />
-            <stop offset="50%" stopColor="#00f2fe" />
-            <stop offset="100%" stopColor="#4facfe" />
-          </linearGradient>
-          <linearGradient id="shortBreakGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ffe259" />
-            <stop offset="100%" stopColor="#ffa751" />
-          </linearGradient>
-          <linearGradient id="longBreakGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#b89af5" />
-            <stop offset="50%" stopColor="#d1a3ff" />
-            <stop offset="100%" stopColor="#00f2fe" />
-          </linearGradient>
+          {/* The light that travels with the countdown: accent at the core, nothing at the edge. */}
+          <radialGradient id="tipLight">
+            <stop className="tip-light-core" offset="0%" />
+            <stop className="tip-light-edge" offset="100%" />
+          </radialGradient>
         </defs>
         <circle
           className="progress-ring-bg"
-          cx="120" cy="120" r={RADIUS}
-        />
-        <circle
-          ref={ringGlowRef}
-          className="progress-ring-glow"
           cx="120" cy="120" r={RADIUS}
         />
         <circle
@@ -221,12 +201,13 @@ const Timer = ({ minutes, seconds, mode, isActive, totalDuration, remainingMs })
         <circle
           ref={orbGlowRef}
           className="progress-ring-orb-glow"
-          cx="230" cy="120" r="7"
+          cx="230" cy="120" r="50"
+          fill="url(#tipLight)"
         />
         <circle
           ref={orbRef}
           className="progress-ring-orb"
-          cx="230" cy="120" r="3"
+          cx="230" cy="120" r="5"
         />
       </svg>
 

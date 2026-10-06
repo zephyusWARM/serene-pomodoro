@@ -6,105 +6,113 @@
     <title>Serene Guardian - 時間到了</title>
     <style>
         @font-face {
-          font-family: 'Inter';
+          font-family: 'Nunito';
           font-style: normal;
           font-weight: 100 900;
           font-display: swap;
-          src: url('fonts/InterVariable-latin.woff2') format('woff2');
+          src: url('fonts/NunitoVariable-latin.woff2') format('woff2');
         }
+
+        :root {
+            --surface: #18120f;
+            --ink: #f8efe3;
+            --ink-2: #dccfbe;
+            --ink-3: #b8aa98;
+            --on-ink: #2b1d14;
+            --fill-1: rgb(255 236 210 / 0.07);
+            --fill-2: rgb(255 236 210 / 0.12);
+            --fill-3: rgb(255 236 210 / 0.18);
+            --hairline: rgb(255 236 210 / 0.10);
+            --accent-rgb: 255 171 100;                 /* focus ended: Apple orange */
+            --accent: rgb(var(--accent-rgb));
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* The colour of the moment follows what just ended, and how often it was put off. */
+        body.mode-shortBreak { --accent-rgb: 142 201 163; }
+        body.mode-longBreak  { --accent-rgb: 190 166 235; }
+        body.urgency-warning { --accent-rgb: 250 140 90; }
+        body.urgency-critical { --accent-rgb: 236 112 98; }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
+            /* Re-derived here so the mode/urgency overrides above reach every descendant. */
+            --accent: rgb(var(--accent-rgb));
             width: 100vw;
             height: 100vh;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Inter', 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+            font-family: 'Nunito', 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+            font-variant-numeric: tabular-nums;
+            -webkit-font-smoothing: antialiased;
             cursor: default;
             user-select: none;
-            background: #050a0f;
+            background: var(--surface);
+            color: var(--ink);
         }
 
-        /* ── Deep Ambient Background (Heavily Blurred) ── */
-        .ambient-bg {
-            position: fixed;
-            inset: -100px;
-            z-index: 1;
-            background-size: cover;
-            background-position: center;
-            filter: blur(80px) saturate(180%);
-            opacity: 0.65;
-            animation: bgBreath 20s ease-in-out infinite alternate;
-        }
-        @keyframes bgBreath {
-            0%   { transform: scale(1.0); }
-            100% { transform: scale(1.08) translate(-1%, -1%); }
+        button { font-family: inherit; }
+
+        button:focus-visible {
+            outline: 2px solid var(--ink);
+            outline-offset: 3px;
         }
 
-        /* ── Dynamic Particle Canvas ── */
-        #particleCanvas {
+        /* ── Colour field of light ──
+           Two static radial washes, nothing blurred and nothing drifting: the screen stays calm and
+           costs nothing to paint. The "rest" wash (cool green) fades in over the first once the
+           rest begins, by opacity only. */
+        .ambient-bg,
+        .ambient-rest {
             position: fixed;
             inset: 0;
-            z-index: 2;
+            z-index: 1;
             pointer-events: none;
-            width: 100vw;
-            height: 100vh;
+            transition: opacity 1.6s ease;
+        }
+        .ambient-bg {
+            background:
+                radial-gradient(60vmax 60vmax at 50% 46%, rgb(var(--accent-rgb) / 0.30), transparent 62%),
+                radial-gradient(90vmax 90vmax at 12% 108%, rgb(var(--accent-rgb) / 0.12), transparent 60%);
+            animation: washIn 1.8s ease both;
+        }
+        .ambient-rest {
+            background:
+                radial-gradient(60vmax 60vmax at 50% 46%, rgb(142 201 163 / 0.26), transparent 62%),
+                radial-gradient(90vmax 90vmax at 12% 108%, rgb(190 166 235 / 0.12), transparent 60%);
+            opacity: 0;
+        }
+        body.phase-rest .ambient-bg { opacity: 0; animation: none; }
+        body.phase-rest .ambient-rest { opacity: 1; }
+
+        @keyframes washIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
         }
 
-        /* ── High-Res Cinematic Window ── */
-        .cinematic-window {
+        /* ── Stage ── */
+        .stage {
             position: relative;
             z-index: 10;
-            width: 65vh;
-            height: 65vh;
-            max-width: 600px;
-            max-height: 600px;
-            border-radius: 48px;
-            box-shadow: 
-                0 40px 100px rgba(0,0,0,0.8),
-                0 0 0 1px rgba(255,255,255,0.08) inset;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: transform 1s ease-out;
-            animation: floatWindow 15s ease-in-out infinite alternate;
+            width: min(560px, 100vw - 64px);
         }
 
-        @keyframes floatWindow {
-            0%   { transform: translateY(0px) scale(1); }
-            100% { transform: translateY(-12px) scale(1.01); }
-        }
-
-        .window-bg {
-            position: absolute;
-            inset: 0;
-            background-size: cover;
-            background-position: center;
-            z-index: -2;
-            transition: transform 1s ease-out;
-        }
-
-        .window-mask {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to bottom, rgba(5,10,15,0.4), rgba(5,10,15,0.2) 40%, rgba(5,10,15,0.7));
-            z-index: -1;
-        }
-
-        /* ── Breathing Circle ── */
+        /* ── The light that breathes ── */
         .breathing-ring {
             position: relative;
-            width: 180px;
-            height: 180px;
+            width: 200px;
+            height: 200px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 24px;
+            margin-bottom: 40px;
         }
 
         .ring-svg {
@@ -114,204 +122,170 @@
             overflow: visible;
         }
 
-        .ring-track { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 1.5; }
+        .ring-track { fill: none; stroke: var(--fill-2); stroke-width: 1.5; }
         .ring-line {
             fill: none;
-            stroke: rgba(255,255,255,0.9);
-            stroke-width: 1.5;
+            stroke: var(--accent);
+            stroke-width: 2.5;
             stroke-linecap: round;
             stroke-dasharray: 471;
             stroke-dashoffset: 471;
-            transition: stroke-dashoffset 4s ease-in-out;
+            transition: stroke-dashoffset 4s ease-in-out, stroke 1.6s ease;
         }
+        /* A wider, fainter pass under the line stands in for the old blurred glow. */
         .ring-glow {
             fill: none;
-            stroke: rgba(255,255,255,0.6);
-            stroke-width: 3;
+            stroke: var(--accent);
+            stroke-width: 9;
             stroke-linecap: round;
             stroke-dasharray: 471;
             stroke-dashoffset: 471;
-            filter: blur(4px);
-            transition: stroke-dashoffset 4s ease-in-out, opacity 2s ease;
+            opacity: 0.18;
+            transition: stroke-dashoffset 4s ease-in-out, stroke 1.6s ease;
         }
 
         .circle-inner {
-            width: 100px;
-            height: 100px;
+            width: 132px;
+            height: 132px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 80%);
-            border: 1px solid rgba(255,255,255,0.15);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: radial-gradient(circle, rgb(var(--accent-rgb) / 0.55) 0%, rgb(var(--accent-rgb) / 0.18) 46%, rgb(var(--accent-rgb) / 0) 72%);
             transition: transform 4s ease-in-out, opacity 4s ease-in-out;
+            will-change: transform, opacity;
         }
 
+        /* While waiting for the choice, the light breathes gently on its own. */
         .mode-focus .circle-inner { animation: breathe 4s ease-in-out infinite; }
         @keyframes breathe {
-            0%, 100% { transform: scale(1); opacity: 0.7; border-color: rgba(255,255,255,0.15); }
-            50%       { transform: scale(1.15); opacity: 1; border-color: rgba(255,255,255,0.4); }
+            0%, 100% { transform: scale(0.95); opacity: 0.75; }
+            50%      { transform: scale(1.12); opacity: 1; }
         }
 
-        /* ── Text UI ── */
+        /* After the 3-second choice, the 4-7-8 breath takes over (JS drives it inline). */
+        body.phase-rest .mode-focus .circle-inner { animation: none; }
+
+        /* ── Text ── */
         .message {
-            color: rgba(255,255,255,0.95);
-            font-size: 2rem;
-            font-weight: 200;
-            letter-spacing: 0.25em;
+            color: var(--ink);
+            font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            line-height: 1.2;
             text-align: center;
-            text-shadow: 0 4px 24px rgba(0,0,0,0.6);
-            animation: fadeUp 1.2s ease-out both;
+            animation: fadeUp 1s var(--ease) both;
         }
 
         .sub-message {
-            color: rgba(255,255,255,0.6);
-            font-size: 0.95rem;
-            font-weight: 300;
-            letter-spacing: 0.22em;
-            animation: fadeUp 1.8s ease-out both;
-            height: 1.5rem;
+            color: var(--ink-2);
+            font-size: 1.0625rem;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            text-align: center;
+            min-height: 1.6em;
             margin-top: 12px;
+            animation: fadeUp 1.2s var(--ease) both;
             transition: opacity 0.45s ease;
         }
 
         @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(18px); }
+            from { opacity: 0; transform: translateY(14px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* ── Dismiss Button (Outside Window) ── */
-        .dismiss-btn {
-            position: absolute;
-            bottom: 6vh;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.5s ease;
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.3);
-            color: rgba(255,255,255,0.85);
-            padding: 12px 48px;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            font-weight: 300;
-            letter-spacing: 0.2em;
-            cursor: pointer;
-            font-family: inherit;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-            backdrop-filter: blur(12px);
-            z-index: 20;
-        }
-        .dismiss-btn.visible { opacity: 1; pointer-events: auto; }
-        .dismiss-btn:hover {
-            border-color: rgba(255,255,255,0.8);
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            transform: scale(1.02);
-            box-shadow: 0 6px 24px rgba(0,0,0,0.4);
-        }
-
-        /* ── Focus Actions (Rest vs Wait) ── */
+        /* ── Focus end: rest or wait ── */
         .focus-actions {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
-            margin-top: 30px;
-            z-index: 20;
-            animation: fadeUp 1.5s ease-out both;
+            gap: 10px;
+            margin-top: 36px;
+            animation: fadeUp 1.4s var(--ease) both;
         }
 
         .focus-btn {
+            position: relative;
             border: none;
-            font-family: inherit;
-            font-size: 0.9rem;
-            font-weight: 300;
-            letter-spacing: 0.2em;
             cursor: pointer;
-            padding: 14px 48px;
-            border-radius: 40px;
-            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
             min-width: 240px;
-            backdrop-filter: blur(8px);
+            height: 52px;
+            padding: 0 36px;
+            border-radius: 9999px;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            transition: transform 0.35s var(--ease), background-color 0.25s ease, color 0.25s ease;
         }
-
-        .focus-btn:active { transform: scale(0.96); }
+        .focus-btn:active { transform: scale(0.97); }
 
         .focus-btn.rest-btn {
-            background: rgba(180, 240, 240, 0.15);
-            color: rgba(180, 240, 240, 0.95);
-            border: 1px solid rgba(180, 240, 240, 0.35);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 20px rgba(180, 240, 240, 0.1);
+            background: var(--ink);
+            color: var(--on-ink);
         }
-        .focus-btn.rest-btn:hover {
-            background: rgba(180, 240, 240, 0.25);
-            border-color: rgba(180, 240, 240, 0.6);
-            transform: translateY(-1px);
-        }
+        .focus-btn.rest-btn:hover { background: #fffaf1; transform: translateY(-1px); }
 
         .focus-btn.wait-btn {
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            height: 44px;
+            background: transparent;
+            color: var(--ink-2);
+            font-weight: 500;
         }
-        .focus-btn.wait-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.35);
-            color: rgba(255, 255, 255, 0.85);
-            transform: translateY(-1px);
-        }
+        .focus-btn.wait-btn:hover { background: var(--fill-1); color: var(--ink); }
 
-        /* ── Stretch Tip ── */
+        /* ── Rest takeover: one gentle instruction ── */
         .stretch-tip {
-            color: rgba(255, 255, 255, 0.75);
-            font-size: 0.95rem;
-            font-weight: 300;
-            letter-spacing: 0.12em;
+            color: var(--ink);
+            font-size: 1.125rem;
+            font-weight: 400;
+            letter-spacing: 0.03em;
+            line-height: 1.7;
             text-align: center;
-            padding: 0 32px;
+            max-width: 22em;
             margin-top: 20px;
-            animation: fadeUp 1.5s ease-out both;
-            line-height: 1.6;
+            text-wrap: pretty;
+            animation: fadeUp 1.2s var(--ease) both;
         }
 
-        /* ── Urgency / Escalation Styles ── */
-        .urgency-warning .message {
-            color: rgba(255, 200, 140, 0.95);
+        /* ── Manual way out (appears after 3 s; hidden from keyboard until then) ── */
+        .dismiss-btn {
+            position: fixed;
+            left: 50%;
+            bottom: 7vh;
+            z-index: 20;
+            transform: translateX(-50%);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0s linear 0.5s, background-color 0.25s ease;
+            height: 48px;
+            padding: 0 40px;
+            border: 1px solid var(--hairline);
+            border-radius: 9999px;
+            background: var(--fill-2);
+            color: var(--ink);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            cursor: pointer;
         }
-        .urgency-warning .ring-line {
-            stroke: rgba(255, 180, 100, 0.9) !important;
+        .dismiss-btn.visible {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.5s ease, visibility 0s, background-color 0.25s ease;
         }
-        .urgency-warning .ring-glow {
-            stroke: rgba(255, 150, 70, 0.6) !important;
-        }
+        .dismiss-btn:hover { background: var(--fill-3); }
+        .dismiss-btn:active { transform: translateX(-50%) scale(0.97); }
 
-        .urgency-critical .message {
-            color: rgba(255, 150, 130, 0.95);
-        }
-        .urgency-critical .ring-line {
-            stroke: rgba(255, 120, 100, 0.9) !important;
-        }
-        .urgency-critical .ring-glow {
-            stroke: rgba(255, 100, 80, 0.6) !important;
-        }
-        .urgency-critical .cinematic-window {
-            box-shadow:
-                0 40px 100px rgba(0,0,0,0.8),
-                0 0 0 1px rgba(255, 120, 100, 0.15) inset,
-                0 0 60px rgba(255, 100, 80, 0.1);
+        @media (prefers-reduced-motion: reduce) {
+            .ambient-bg, .message, .sub-message, .focus-actions, .stretch-tip { animation: none; }
+            .mode-focus .circle-inner { animation: none; }
         }
     </style>
 </head>
 <body>
     <div class="ambient-bg" id="ambientBg"></div>
-    <canvas id="particleCanvas"></canvas>
+    <div class="ambient-rest" id="ambientRest"></div>
 
-    <div class="cinematic-window" id="content">
-        <div class="window-bg" id="windowBg"></div>
-        <div class="window-mask"></div>
-
-        <div class="breathing-ring">
-            <svg class="ring-svg" width="180" height="180" viewBox="0 0 180 180">
+    <main class="stage" id="content">
+        <div class="breathing-ring" aria-hidden="true">
+            <svg class="ring-svg" width="200" height="200" viewBox="0 0 180 180">
                 <circle class="ring-track" cx="90" cy="90" r="75"/>
                 <circle class="ring-glow"  cx="90" cy="90" r="75" id="ringGlow"/>
                 <circle class="ring-line"  cx="90" cy="90" r="75" id="ringLine"/>
@@ -319,23 +293,24 @@
             <div class="circle-inner" id="circleInner"></div>
         </div>
 
-        <div class="message" id="message">時間到了</div>
-        <div class="sub-message" id="sub-message">深呼吸，放鬆一下...</div>
+        <h1 class="message" id="message" aria-live="polite">時間到了</h1>
+        <div class="sub-message" id="sub-message">深呼吸，放鬆一下</div>
 
         <div class="focus-actions" id="focusActions" style="display: none;">
-            <button class="focus-btn rest-btn" id="restBtn">🌿 開始休息</button>
-            <button class="focus-btn wait-btn" id="waitBtn">⏳ 再等一分鐘</button>
+            <button class="focus-btn rest-btn" id="restBtn" type="button">開始休息</button>
+            <button class="focus-btn wait-btn" id="waitBtn" type="button">再等一分鐘</button>
         </div>
 
         <div class="stretch-tip" id="stretchTip" style="display: none;"></div>
-    </div>
+    </main>
 
-    <button class="dismiss-btn" id="dismissBtn" onclick="dismissOverlay()">繼續</button>
+    <button class="dismiss-btn" id="dismissBtn" type="button" onclick="dismissOverlay()">繼續</button>
 
     <script>
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode') || 'focus';
         const skipCount = parseInt(params.get('skipCount') || '0', 10);
+        document.body.classList.add(`mode-${mode}`);
         document.getElementById('content').classList.add(`mode-${mode}`);
 
         // Apply urgency classes based on skip count
@@ -347,126 +322,27 @@
 
         // ── Stretch & Health Tips ──
         const stretchTips = [
-            '🧍 站起來，伸展你的雙腿',
-            '🔄 慢慢轉動你的脖子，釋放肩頸壓力',
-            '💧 喝一口水吧，保持身體水分',
-            '👁️ 閉上眼睛 10 秒，讓它們休息',
-            '🙆 雙手高舉過頭，向上伸展',
-            '🫁 深呼吸三次，感受空氣進入身體',
-            '🪟 走到窗邊，看看遠方的風景',
-            '🤸 站起來活動一下脊椎，扭轉身體',
-            '🦶 踮起腳尖再放下，重複 5 次',
-            '🧘 閉眼，感受自己的呼吸 10 秒',
-            '💪 聳肩到耳朵旁，維持 3 秒再放鬆',
-            '🚶 在房間走一小圈，讓血液流動',
+            '站起來，伸展你的雙腿',
+            '慢慢轉動你的脖子，釋放肩頸壓力',
+            '喝一口水吧，保持身體水分',
+            '閉上眼睛 10 秒，讓它們休息',
+            '雙手高舉過頭，向上伸展',
+            '深呼吸三次，感受空氣進入身體',
+            '走到窗邊，看看遠方的風景',
+            '站起來活動一下脊椎，扭轉身體',
+            '踮起腳尖再放下，重複 5 次',
+            '閉眼，感受自己的呼吸 10 秒',
+            '聳肩到耳朵旁，維持 3 秒再放鬆',
+            '在房間走一小圈，讓血液流動',
         ];
 
         // Urgency messages based on skip count
         const urgencyMessages = {
             0: { msg: '專注結束', sub: '做得好，你值得休息一下' },
-            1: { msg: '該休息了', sub: '你已經延後了一次，身體需要你' },
-            2: { msg: '請休息', sub: '連續久坐對健康有害，現在就站起來' },
-            3: { msg: '你必須休息', sub: '你的身體正在向你求救' },
+            1: { msg: '該休息囉', sub: '你已經延後一次了，身體正輕輕提醒你' },
+            2: { msg: '先休息一下吧', sub: '坐了好一陣子，站起來伸展一下' },
+            3: { msg: '好好休息一下', sub: '你已經很努力了，現在輪到身體' },
         };
-
-        // Setup Image Sources based on mode
-        const bgMap = {
-            focus: './bg-focus.png',
-            shortBreak: './bg-break.png',
-            longBreak: './bg-overlay.png'
-        };
-        const imgSrc = bgMap[mode] || bgMap.focus;
-        
-        document.getElementById('ambientBg').style.backgroundImage = `url(${imgSrc})`;
-        document.getElementById('windowBg').style.backgroundImage = `url(${imgSrc})`;
-
-        /* ── Canvas Particle Engine ── */
-        const canvas = document.getElementById('particleCanvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        class Particle {
-            constructor() {
-                this.reset(true);
-            }
-            reset(randomizeY = false) {
-                this.x = Math.random() * canvas.width;
-                if (mode === 'longBreak') {
-                    // Snow falls down
-                    this.y = randomizeY ? Math.random() * canvas.height : -10;
-                    this.vy = Math.random() * 0.5 + 0.2;
-                    this.vx = (Math.random() - 0.5) * 0.5;
-                    this.color = `rgba(255, 255, 255, ${Math.random() * 0.4 + 0.2})`;
-                } else if (mode === 'shortBreak') {
-                    // Embers float up & drift
-                    this.y = randomizeY ? Math.random() * canvas.height : canvas.height + 10;
-                    this.vy = -(Math.random() * 0.8 + 0.4);
-                    this.vx = (Math.random() - 0.5) * 1.5;
-                    this.color = Math.random() > 0.5 
-                        ? `rgba(255, 180, 100, ${Math.random() * 0.6 + 0.2})`  // Orange
-                        : `rgba(255, 120, 150, ${Math.random() * 0.6 + 0.2})`; // Magenta tint
-                } else {
-                    // Mist/Fireflies float up very slowly
-                    this.y = randomizeY ? Math.random() * canvas.height : canvas.height + 10;
-                    this.vy = -(Math.random() * 0.3 + 0.1);
-                    this.vx = (Math.random() - 0.5) * 0.3;
-                    this.color = `rgba(255, 255, 255, ${Math.random() * 0.3 + 0.1})`;
-                }
-                this.size = Math.random() * 2.5 + 0.5;
-                this.life = 0;
-                this.maxLife = Math.random() * 200 + 100;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.life++;
-
-                if (mode === 'shortBreak') {
-                    this.vx += (Math.random() - 0.5) * 0.1; // jitter for fire
-                }
-
-                if (
-                    this.y < -20 || 
-                    this.y > canvas.height + 20 || 
-                    this.x < -20 || 
-                    this.x > canvas.width + 20 ||
-                    this.life > this.maxLife
-                ) {
-                    this.reset();
-                }
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                
-                // Opacity fade in/out
-                let alpha = 1;
-                if (this.life < 30) alpha = this.life / 30;
-                else if (this.life > this.maxLife - 30) alpha = (this.maxLife - this.life) / 30;
-                ctx.globalAlpha = alpha;
-                
-                ctx.fill();
-                ctx.globalAlpha = 1;
-            }
-        }
-
-        const numParticles = mode === 'shortBreak' ? 60 : 40;
-        for (let i = 0; i < numParticles; i++) particles.push(new Particle());
-
-        function loop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(loop);
-        }
-        loop();
 
         /* ── Timers & Logic ── */
         const msgEl  = document.getElementById('message');
@@ -483,10 +359,17 @@
             line.style.strokeDashoffset = offset;
         }
 
+        // The rest has begun: the colour of the room turns cool and green, by opacity and stroke only.
+        function enterRestPhase() {
+            document.body.classList.add('phase-rest');
+            line.style.stroke = 'rgb(142 201 163)';
+            glow.style.stroke = 'rgb(142 201 163)';
+        }
+
         function startBreatheCycle(durationMs = 19000, initialDelay = false) {
             const breathe = () => {
                 subEl.style.opacity = '0';
-                setTimeout(() => { subEl.textContent = '吸氣...'; subEl.style.opacity = '1'; }, 200);
+                setTimeout(() => { subEl.textContent = '吸氣'; subEl.style.opacity = '1'; }, 200);
                 glow.style.transition = `stroke-dashoffset 4s ease-in-out`;
                 line.style.transition = `stroke-dashoffset 4s ease-in-out`;
                 inner.style.transition = 'transform 4s ease-in-out, opacity 4s ease';
@@ -496,7 +379,7 @@
 
                 setTimeout(() => {
                     subEl.style.opacity = '0';
-                    setTimeout(() => { subEl.textContent = '憋氣...'; subEl.style.opacity = '1'; }, 200);
+                    setTimeout(() => { subEl.textContent = '閉氣'; subEl.style.opacity = '1'; }, 200);
                     glow.style.transition = 'none'; line.style.transition = 'none';
                     inner.style.transition = 'opacity 7s ease';
                     inner.style.opacity = '0.7';
@@ -504,7 +387,7 @@
 
                 setTimeout(() => {
                     subEl.style.opacity = '0';
-                    setTimeout(() => { subEl.textContent = '緩緩吐氣...'; subEl.style.opacity = '1'; }, 200);
+                    setTimeout(() => { subEl.textContent = '緩緩吐氣'; subEl.style.opacity = '1'; }, 200);
                     glow.style.transition = `stroke-dashoffset 8s ease-in-out`;
                     line.style.transition = `stroke-dashoffset 8s ease-in-out`;
                     inner.style.transition = 'transform 8s ease-in-out, opacity 8s ease';
@@ -530,8 +413,6 @@
             setRingProgress(1);
             glow.style.transition = 'none';
             line.style.transition = 'none';
-            line.style.stroke = 'rgba(255, 230, 200, 0.9)';
-            glow.style.stroke = 'rgba(255, 200, 150, 0.6)';
 
             const focusActions = document.getElementById('focusActions');
             const restBtn = document.getElementById('restBtn');
@@ -544,7 +425,7 @@
             }
 
             let countdown = 3;
-            restBtn.textContent = `🌿 開始休息 (${countdown}s)`;
+            restBtn.textContent = `開始休息 · ${countdown} 秒`;
 
             const startRestTakeover = () => {
                 focusActions.style.display = 'none';
@@ -565,9 +446,7 @@
                 // After 3 seconds, start breathing cycle AND show backup dismiss button
                 setTimeout(() => {
                     stretchTip.style.display = 'none';
-                    // Color transition to cool
-                    line.style.stroke = 'rgba(210, 230, 255, 0.9)';
-                    glow.style.stroke = 'rgba(180, 200, 255, 0.6)';
+                    enterRestPhase();
                     startBreatheCycle(19000, true);
 
                     // Show backup dismiss button so user always has a manual escape
@@ -613,7 +492,7 @@
                     clearInterval(focusInterval);
                     startRestTakeover();
                 } else {
-                    restBtn.textContent = `🌿 開始休息 (${countdown}s)`;
+                    restBtn.textContent = `開始休息 · ${countdown} 秒`;
                 }
             }, 1000);
 
@@ -630,8 +509,7 @@
 
         } else {
             msgEl.textContent = mode === 'shortBreak' ? '短休息結束' : '長休息結束';
-            line.style.stroke = 'rgba(210, 230, 255, 0.9)';
-            glow.style.stroke = 'rgba(180, 200, 255, 0.6)';
+            subEl.textContent = '準備好了就繼續';
 
             startBreatheCycle();
 
@@ -661,17 +539,6 @@
                 const btn = document.getElementById('dismissBtn');
                 if (btn.classList.contains('visible')) dismissOverlay();
             }
-        });
-
-        // 3D Parallax effect on the window based on mouse moving
-        document.addEventListener('mousemove', (e) => {
-            const win = document.getElementById('content');
-            const x = (e.clientX / window.innerWidth - 0.5) * 20; 
-            const y = (e.clientY / window.innerHeight - 0.5) * 20;
-            win.style.transform = `translate(${x}px, ${y}px) rotateX(${-y*0.3}deg) rotateY(${x*0.3}deg)`;
-            
-            const bg = document.getElementById('windowBg');
-            bg.style.transform = `scale(1.05) translate(${-x*0.8}px, ${-y*0.8}px)`;
         });
     </script>
 </body>

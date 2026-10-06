@@ -1,0 +1,160 @@
+/* ── Today / this week ──────────────────────────────────────────
+   A bottom sheet over the widget. Seven bars say it; one sentence names it. */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  background: rgb(var(--surface-rgb) / 0.5);
+  animation: sheetScrimIn 0.4s var(--ease) both;
+  -webkit-app-region: no-drag;
+}
+
+@keyframes sheetScrimIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sheet {
+  width: 100%;
+  padding: 0 20px 18px;
+  border-radius: 24px 24px 0 0;
+  background: rgb(var(--raised-rgb) / 0.97);
+  border-top: 1px solid var(--hairline);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  animation: sheetUp 0.55s var(--ease) both;
+  outline: none;
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* Drag handle: the one place the window can still be moved while a sheet is open. */
+.sheet-grabber {
+  width: 36px;
+  height: 5px;
+  margin: 8px auto 6px;
+  border-radius: 9999px;
+  background: var(--fill-3);
+  -webkit-app-region: drag;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheet-heading {
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.sheet-title {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.sheet-summary {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+  max-width: 30ch;
+  text-wrap: pretty;
+}
+
+.sheet-close {
+  margin-top: 2px;
+}
+
+/* ── Seven days ── */
+.week {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.week-count {
+  height: 14px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 14px;
+  color: var(--ink-2);
+}
+
+.week-track {
+  width: 100%;
+  max-width: 26px;
+  height: 96px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.week-bar {
+  width: 100%;
+  border-radius: 8px;
+  background: var(--fill-3);
+  transform-origin: bottom;
+  animation: barGrow 0.7s var(--ease) both;
+}
+
+.week-day:nth-child(2) .week-bar { animation-delay: 30ms; }
+.week-day:nth-child(3) .week-bar { animation-delay: 60ms; }
+.week-day:nth-child(4) .week-bar { animation-delay: 90ms; }
+.week-day:nth-child(5) .week-bar { animation-delay: 120ms; }
+.week-day:nth-child(6) .week-bar { animation-delay: 150ms; }
+.week-day:nth-child(7) .week-bar { animation-delay: 180ms; }
+
+@keyframes barGrow {
+  from { transform: scaleY(0.05); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+
+.week-day.today .week-bar {
+  background: var(--accent);
+}
+
+.week-day.today .week-count {
+  color: var(--accent);
+}
+
+.week-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.week-day.today .week-label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.sheet-today {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.sheet-today-count {
+  color: var(--ink);
+  font-weight: 600;
+}

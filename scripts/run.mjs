@@ -17,7 +17,7 @@ const tasks = {
   build: ['node_modules/vite/bin/vite.js', 'build'],
   lint: ['node_modules/eslint/bin/eslint.js', '.','--max-warnings=0'],
   electron: ['node_modules/@playwright/test/cli.js', 'test'],
-  unit: ['--test', 'tests/persistence.test.mjs'],
+  unit: ['--test', 'tests/persistence.test.mjs', 'tests/weekSummary.test.mjs'],
   skills: ['scripts/skills-check.mjs'],
   'package:win': ['node_modules/electron-builder/cli.js', '--win', '--publish', 'never'],
 };

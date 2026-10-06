@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Timer from './components/Timer';
 import Controls from './components/Controls';
 import Settings from './components/Settings';
@@ -6,6 +6,8 @@ import AmbientPlayer from './components/AmbientPlayer';
 import FocusEndPrompt from './components/FocusEndPrompt';
 import RestOverlay from './components/RestOverlay';
 import MorningIntentionModal from './components/MorningIntentionModal';
+import CompactBar from './components/CompactBar';
+import TodaySheet from './components/TodaySheet';
 import useTimer from './hooks/useTimer';
 import useSettings from './hooks/useSettings';
 import useStats from './hooks/useStats';
@@ -13,11 +15,6 @@ import useMorningIntention from './hooks/useMorningIntention';
 import useDialogFocus from './hooks/useDialogFocus';
 import { requestNotificationPermission } from './utils/notifications';
 import './App.css';
-
-import bgFocus  from './assets/bg-focus.png';
-import bgBreak  from './assets/bg-break.png';
-import bgLong   from './assets/bg-overlay.png'; // Night/Cosmos for Long Break
-import TimeTraveler from './components/TimeTraveler'; // Time Traveler Dynamic Effect
 
 import {
   MuteIcon,
@@ -30,6 +27,7 @@ import {
   LongBreakIcon,
   SparkleIcon,
   TrayIcon,
+  IslandIcon,
 } from './components/Icons';
 
 const AMBIENT_ITEMS = [
@@ -44,6 +42,11 @@ const TRANSITION_CONFIG = {
   shortBreak: { text: '做得好！即將進入休息...', Icon: ShortBreakIcon },
   longBreak:  { text: '太棒了！進入長休息...', Icon: LongBreakIcon },
 };
+
+// More dots than this stop being glanceable (and overflow the widget); the count says the rest.
+const MAX_DOTS = 16;
+// The window resize happens between a short fade-out and fade-in so the swap never shows a clipped frame.
+const ISLAND_FADE_MS = 140;
 
 function App() {
   const { settings, updateSetting } = useSettings();
@@ -71,8 +74,38 @@ function App() {
     openModalManual,
   } = useMorningIntention({ isFocusActive: isActive && mode === 'focus' });
 
+  const [showToday, setShowToday] = useState(false);
+  const [compact, setCompact] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const switchingRef = useRef(false);
+  const canCompact = Boolean(window.electronAPI?.setCompact);
+
   const breakDoneRef = useRef(null);
   useDialogFocus(breakDoneRef, focusEndState === 'break-done');
+
+  // Island mode: collapse the widget into a capsule or expand it again. The countdown never pauses.
+  const switchCompact = useCallback(async (next) => {
+    if (!window.electronAPI?.setCompact || switchingRef.current) return;
+    switchingRef.current = true;
+    setSwitching(true);
+    await new Promise((resolve) => setTimeout(resolve, ISLAND_FADE_MS));
+    try {
+      await window.electronAPI.setCompact(next);
+      setCompact(next);
+      if (next) setShowToday(false);
+    } finally {
+      requestAnimationFrame(() => {
+        setSwitching(false);
+        switchingRef.current = false;
+      });
+    }
+  }, []);
+
+  // Anything that needs the full widget (break finished, morning intention) pulls it out of the island.
+  const needsFullWidget = showMorningModal || focusEndState === 'break-done';
+  useEffect(() => {
+    if (compact && needsFullWidget) switchCompact(false);
+  }, [compact, needsFullWidget, switchCompact]);
 
   // Stats listener + notification permission
   useEffect(() => {
@@ -110,7 +143,7 @@ function App() {
     if (mode !== 'focus' && isActive && window.electronAPI?.updateBreakGlow) {
       const timeText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
       const percent = totalDuration > 0 ? (totalDuration - remainingMs) / totalDuration : 0;
-      window.electronAPI.updateBreakGlow({ timeText, percent });
+      window.electronAPI.updateBreakGlow({ timeText, percent, mode });
     }
   }, [minutes, seconds, mode, isActive, totalDuration, remainingMs]);
 
@@ -140,7 +173,7 @@ function App() {
     };
   }, [isActive, startTimer, pauseTimer, resetTimer, openModalManual]);
 
-  // Global Keyboard Shortcuts (Space: Start/Pause/Continue, R: Reset, M: Cycle Mode)
+  // Global Keyboard Shortcuts (Space: Start/Pause/Continue, R: Reset, M: Cycle Mode, I: Island)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.defaultPrevented || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
@@ -179,12 +212,15 @@ function App() {
         const currentIdx = modes.indexOf(mode);
         const next = modes[(currentIdx + 1) % modes.length];
         changeMode(next);
+      } else if ((e.key === 'i' || e.key === 'I') && canCompact && !needsFullWidget && !showToday) {
+        e.preventDefault();
+        switchCompact(!compact);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, mode, focusEndState, showMorningModal, handleBreakDoneStart, startTimer, pauseTimer, resetTimer, changeMode]);
+  }, [isActive, mode, focusEndState, showMorningModal, handleBreakDoneStart, startTimer, pauseTimer, resetTimer, changeMode, canCompact, compact, needsFullWidget, showToday, switchCompact]);
 
   const handleHideToTray = () => {
     if (window.electronAPI?.hideWindow) window.electronAPI.hideWindow();
@@ -198,15 +234,14 @@ function App() {
     return 'focus';
   };
 
-  // Convert focus count to minimalist dots (groups of 4)
+  // Today's focus sessions as dots, grouped in fours. They are decoration for the count beside them.
   const renderDots = () => {
-    // Show total slots rounded up to nearest 4, min 4
-    const totalSlots = Math.max(4, Math.ceil(todayFocusCount / 4) * 4);
+    const shown = Math.min(todayFocusCount, MAX_DOTS);
+    const totalSlots = Math.min(MAX_DOTS, Math.max(4, Math.ceil(todayFocusCount / 4) * 4));
     return Array.from({ length: totalSlots }).map((_, i) => (
-      <div 
-        key={i} 
-        className={`progress-dot ${i < todayFocusCount ? 'completed' : ''}`} 
-        title={i < todayFocusCount ? '已完成的專注' : '尚未完成'}
+      <span
+        key={i}
+        className={`progress-dot ${i < shown ? 'completed' : ''}`}
       />
     ));
   };
@@ -214,24 +249,23 @@ function App() {
   const nextMode = getNextMode();
   const transitionConfig = TRANSITION_CONFIG[nextMode];
 
-  return (
-    <div className="app" data-mode={mode}>
-      {/* ── AI Background Layers (crossfade) ── */}
-      <div
-        className="app-bg app-bg-focus"
-        style={{ backgroundImage: `url(${bgFocus})` }}
-      />
-      <div
-        className="app-bg app-bg-break"
-        style={{ backgroundImage: `url(${bgBreak})` }}
-      />
-      <div
-        className="app-bg app-bg-long"
-        style={{ backgroundImage: `url(${bgLong})` }}
-      />
+  // 0..1 across the current session; drives the slow drift of the ambient light, once per second.
+  const progress = totalDuration > 0
+    ? Math.min(1, Math.max(0, (totalDuration - remainingMs) / totalDuration))
+    : 0;
 
-      {/* ── Time Traveler Dynamic Effect ── */}
-      <TimeTraveler active={mode === 'focus' && isActive} />
+  return (
+    <div
+      className="app"
+      data-mode={mode}
+      data-compact={compact ? 'true' : 'false'}
+      data-switching={switching ? 'true' : 'false'}
+      style={{ '--progress': progress.toFixed(4) }}
+    >
+      {/* ── Ambient colour field: one scene of light per mode, crossfaded (drawn in CSS) ── */}
+      <div className="app-bg app-bg-focus" />
+      <div className="app-bg app-bg-break" />
+      <div className="app-bg app-bg-long" />
 
       {/* ── Ambient Audio ── */}
       <AmbientPlayer sound={settings.ambientSound} />
@@ -240,11 +274,9 @@ function App() {
       {isTransitioning && (
         <div className="transition-overlay">
           <div className="transition-content">
-            <div className="transition-icon-wrap">
-              <transitionConfig.Icon size={32} className="transition-icon-svg" />
-            </div>
+            <transitionConfig.Icon size={30} className="transition-icon-svg" />
             <div className="transition-text">{transitionConfig.text}</div>
-            <div className="transition-dots">
+            <div className="transition-dots" aria-hidden="true">
               <span className="t-dot" />
               <span className="t-dot" />
               <span className="t-dot" />
@@ -274,9 +306,7 @@ function App() {
       {focusEndState === 'break-done' && (
         <div className="break-done-overlay" ref={breakDoneRef} role="dialog" aria-modal="true" aria-labelledby="break-done-title" tabIndex={-1}>
           <div className="break-done-content">
-            <div className="break-done-icon-wrap">
-              <SparkleIcon size={36} className="break-done-sparkle" />
-            </div>
+            <SparkleIcon size={34} className="break-done-sparkle" />
             <h2 className="break-done-title" id="break-done-title">休息結束！</h2>
             <p className="break-done-text">身心充飽電，準備好請點擊繼續</p>
             <button
@@ -303,105 +333,149 @@ function App() {
         onDismiss={dismissForToday}
       />
 
-      {/* ── Minimalist Content Layer ── */}
-      <div className="app-content" inert={showMorningModal || focusEndState === 'break-done'}>
-        
-        {/* Title Bar */}
-        <div className="title-bar">
-          <Settings 
-            settings={settings} 
-            onUpdate={updateSetting} 
-            todayIntention={todayIntention}
-            onOpenMorningModal={openModalManual}
-          />
-          <div className="title-center">
-            <p className="app-title">{settings.taskName || 'SERENE GUARDIAN'}</p>
-            {todayIntention ? (
-              <button
-                className="morning-intention-badge"
-                onClick={openModalManual}
-                title="點擊回顧或修改今日心向"
-              >
-                <SparkleIcon size={12} className="badge-sparkle-icon" />
-                <span className="badge-text">{todayIntention}</span>
-              </button>
-            ) : (
-              <button
-                className="morning-intention-badge empty"
-                onClick={openModalManual}
-                title="點擊設定今日心向"
-              >
-                <SparkleIcon size={12} className="badge-sparkle-icon" />
-                <span className="badge-text">今日心向</span>
-              </button>
-            )}
-          </div>
-          {window.electronAPI?.isElectron ? (
-            <button
-              className="tray-hide-btn"
-              onClick={handleHideToTray}
-              aria-label="隱藏至系統列"
-              title="隱藏至系統列"
-            >
-              <TrayIcon size={14} />
-            </button>
-          ) : (
-            <div className="tray-placeholder" />
-          )}
-        </div>
+      {/* ── Today / this week ── */}
+      <TodaySheet
+        visible={showToday && !compact}
+        todayCount={todayFocusCount}
+        onClose={() => setShowToday(false)}
+      />
 
-        {/* Center Timer */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', width: '100%' }}>
-          <Timer
-            minutes={minutes}
-            seconds={seconds}
-            mode={mode}
-            isActive={isActive}
-            totalDuration={totalDuration}
-            remainingMs={remainingMs}
-          />
-        </div>
-
-        {/* Bottom Controls */}
-        <Controls
-          isActive={isActive}
-          onStart={startTimer}
-          onPause={pauseTimer}
-          onReset={resetTimer}
+      {compact ? (
+        /* ── Island: the whole widget as one capsule ── */
+        <CompactBar
+          minutes={minutes}
+          seconds={seconds}
           mode={mode}
-          onModeChange={changeMode}
-          cycleCount={cycleCount}
+          isActive={isActive}
+          progress={progress}
           isTransitioning={isTransitioning}
+          onToggle={isActive ? pauseTimer : startTimer}
+          onExpand={() => switchCompact(false)}
         />
+      ) : (
+        /* ── Content layer ── */
+        <div className="app-content" inert={showMorningModal || focusEndState === 'break-done' || showToday}>
 
-        {/* Ambient Tools (Apple Mini-Dock Style) */}
-        <div className="ambient-bar" role="toolbar" aria-label="環境白噪音">
-          {AMBIENT_ITEMS.map(({ key, label, Icon }) => {
-            const isSelected = settings.ambientSound === key;
-            const isPlaying = isSelected && key !== 'none';
-            return (
-              <button
-                key={key}
-                className={`ambient-btn${isSelected ? ' active' : ''}`}
-                data-sound={key}
-                onClick={() => updateSetting('ambientSound', key)}
-                aria-pressed={isSelected}
-                title={`環境白噪音：${label}${isPlaying ? ' (播放中)' : ''}`}
-              >
-                <Icon size={14} className="ambient-icon" />
-                <span className="ambient-label">{label}</span>
-                {isPlaying && <MiniEqualizer />}
-              </button>
-            );
-          })}
+          {/* Title Bar */}
+          <div className="title-bar">
+            <div className="title-side">
+              <Settings
+                settings={settings}
+                onUpdate={updateSetting}
+                todayIntention={todayIntention}
+                onOpenMorningModal={openModalManual}
+              />
+            </div>
+            <div className="title-center">
+              <p className="app-title">{settings.taskName || 'Serene Guardian'}</p>
+              {todayIntention ? (
+                <button
+                  className="morning-intention-badge"
+                  onClick={openModalManual}
+                  title="點擊回顧或修改今日心向"
+                >
+                  <SparkleIcon size={11} className="badge-sparkle-icon" />
+                  <span className="badge-text">{todayIntention}</span>
+                </button>
+              ) : (
+                <button
+                  className="morning-intention-badge empty"
+                  onClick={openModalManual}
+                  title="點擊設定今日心向"
+                >
+                  <SparkleIcon size={11} className="badge-sparkle-icon" />
+                  <span className="badge-text">今日心向</span>
+                </button>
+              )}
+            </div>
+            <div className="title-side title-side-end">
+              {canCompact && (
+                <button
+                  className="icon-btn island-btn"
+                  onClick={() => switchCompact(true)}
+                  aria-label="收合成島嶼"
+                  title="收合成島嶼 (快捷鍵 I)"
+                >
+                  <IslandIcon size={18} />
+                </button>
+              )}
+              {window.electronAPI?.isElectron ? (
+                <button
+                  className="icon-btn tray-hide-btn"
+                  onClick={handleHideToTray}
+                  aria-label="隱藏至系統列"
+                  title="隱藏至系統列"
+                >
+                  <TrayIcon size={16} />
+                </button>
+              ) : (
+                <div className="tray-placeholder" />
+              )}
+            </div>
+          </div>
+
+          {/* Center Timer */}
+          <div className="timer-stage">
+            <Timer
+              minutes={minutes}
+              seconds={seconds}
+              mode={mode}
+              isActive={isActive}
+              totalDuration={totalDuration}
+              remainingMs={remainingMs}
+            />
+          </div>
+
+          {/* Bottom Controls */}
+          <Controls
+            isActive={isActive}
+            onStart={startTimer}
+            onPause={pauseTimer}
+            onReset={resetTimer}
+            mode={mode}
+            onModeChange={changeMode}
+            cycleCount={cycleCount}
+            isTransitioning={isTransitioning}
+          />
+
+          {/* Ambient sounds: the selected one opens into a pill, the rest stay icons */}
+          <div className="ambient-bar" role="toolbar" aria-label="環境白噪音">
+            {AMBIENT_ITEMS.map(({ key, label, Icon }) => {
+              const isSelected = settings.ambientSound === key;
+              const isPlaying = isSelected && key !== 'none';
+              return (
+                <button
+                  key={key}
+                  className={`ambient-btn${isSelected ? ' active' : ''}`}
+                  data-sound={key}
+                  onClick={() => updateSetting('ambientSound', key)}
+                  aria-pressed={isSelected}
+                  title={`環境白噪音：${label}${isPlaying ? ' (播放中)' : ''}`}
+                >
+                  <Icon size={16} className="ambient-icon" />
+                  <span className="ambient-label">{label}</span>
+                  {isPlaying && <MiniEqualizer />}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Today: dots + count, opens the week */}
+          <button
+            className="today-btn"
+            onClick={() => setShowToday(true)}
+            aria-haspopup="dialog"
+            aria-label={`今日專注 ${todayFocusCount} 段，查看本週`}
+            title="查看本週專注"
+          >
+            <span className="progress-dots-container" aria-hidden="true">
+              {renderDots()}
+            </span>
+            <span className="today-count" aria-hidden="true">今日 {todayFocusCount}</span>
+          </button>
+
         </div>
-
-        {/* Minimalist Progress Indicator */}
-        <div className="progress-dots-container">
-          {renderDots()}
-        </div>
-
-      </div>
+      )}
     </div>
   );
 }

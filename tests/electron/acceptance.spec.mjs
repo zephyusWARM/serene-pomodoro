@@ -238,3 +238,93 @@ test('twenty elapsed minutes trigger real reminder and reset re-arms it; suspend
   await expect(page.locator('.time')).toHaveText(suspended);
   expect(await page.evaluate(() => localStorage.getItem('zen-garden-stats'))).toBeNull();
 });
+
+// The widget itself: break glow and reminder windows can be listed first while they are open.
+const mainWindow = async () => (await windows()).find(w => !/break-glow|eye-reminder|overlay/.test(w.url));
+const mainBounds = async () => (await mainWindow()).bounds;
+
+test('island mode resizes the real window, keeps counting, and expands back', async () => {
+  const full = await mainBounds();
+  expect(full).toMatchObject({ width: 340, height: 480 });
+  await start();
+  await expect(timer()).toHaveAttribute('data-active', 'true');
+  await page.locator('.island-btn').click();
+  await expect.poll(mainBounds).toMatchObject({ width: 248, height: 64 });
+  const island = await mainBounds();
+  expect(Math.abs((island.x + island.width / 2) - (full.x + full.width / 2)), 'island stays centred on the widget').toBeLessThanOrEqual(1);
+  expect(Math.abs(island.y - full.y), 'island keeps the widget top').toBeLessThanOrEqual(1);
+  expect(await mainWindow()).toMatchObject({ visible: true, top: true });
+  const readout = page.locator('.compact-time');
+  await expect(readout).toBeVisible();
+  const before = await readout.innerText();
+  await page.waitForTimeout(1600);
+  expect(await readout.innerText(), 'the countdown keeps running inside the island').not.toBe(before);
+  const fit = await page.evaluate(() => {
+    const r = document.querySelector('.compact-bar').getBoundingClientRect();
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, w: window.innerWidth, h: window.innerHeight };
+  });
+  expect(fit.left).toBeGreaterThanOrEqual(0);
+  expect(fit.top).toBeGreaterThanOrEqual(0);
+  expect(fit.right, 'capsule fits the island window').toBeLessThanOrEqual(fit.w);
+  expect(fit.bottom, 'capsule fits the island window').toBeLessThanOrEqual(fit.h);
+  await capture('island');
+  await page.getByRole('button', { name: '暫停計時', exact: true }).click();
+  await expect(page.locator('.compact-bar')).toHaveAttribute('data-active', 'false');
+  await page.locator('.compact-expand').click();
+  await expect.poll(mainBounds).toMatchObject({ width: 340, height: 480 });
+  await expect(timer()).toBeVisible();
+  await expect(timer()).toHaveAttribute('data-active', 'false');
+  // Keyboard: I toggles the island, and a reload always brings the full widget back.
+  await page.keyboard.press('i');
+  await expect.poll(mainBounds).toMatchObject({ width: 248, height: 64 });
+  await page.reload();
+  await dismissMorning();
+  await expect.poll(mainBounds).toMatchObject({ width: 340, height: 480 });
+  await expect(timer()).toBeVisible();
+});
+
+test('a finished break pulls the island back out so the confirmation is never hidden', async () => {
+  await start();
+  await jump(25 * 60000 + 1000);
+  await expect(timer()).toHaveAttribute('data-mode', 'shortBreak');
+  await page.locator('.island-btn').click();
+  await expect.poll(mainBounds).toMatchObject({ width: 248, height: 64 });
+  await expect(page.locator('.compact-bar')).toHaveAttribute('data-mode', 'shortBreak');
+  await jump(5 * 60000 + 1000);
+  await expect.poll(mainBounds).toMatchObject({ width: 340, height: 480 });
+  await expect(page.locator('.break-done-btn')).toBeVisible();
+  await expect(timer()).toHaveAttribute('data-active', 'false');
+});
+
+test('today sheet opens from the progress dots, summarises the week, traps focus and restores it', async () => {
+  await page.evaluate(() => {
+    const pad = n => String(n).padStart(2, '0');
+    const key = back => {
+      const d = new Date(); d.setDate(d.getDate() - back);
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    };
+    localStorage.setItem('zen-garden-stats', JSON.stringify({ [key(0)]: 3, [key(1)]: 2, [key(2)]: 1 }));
+  });
+  await page.reload();
+  await dismissMorning();
+  const opener = page.locator('.today-btn');
+  await expect(opener).toHaveAccessibleName('今日專注 3 段，查看本週');
+  await opener.click();
+  const sheet = page.getByRole('dialog', { name: '本週' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText('這週完成 6 段專注，已連續 3 天');
+  await expect(sheet.getByRole('listitem')).toHaveCount(7);
+  await expect(sheet.getByRole('listitem').last()).toHaveAccessibleName(/（今天）\s*3 段/);
+  await capture('today-sheet');
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab');
+    expect(await sheet.evaluate(el => el.contains(document.activeElement))).toBe(true);
+  }
+  await page.evaluate(axe.source);
+  const results = await page.evaluate(() => window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }));
+  await writeFile('artifacts/electron/axe-today-sheet.json', JSON.stringify(results, null, 2));
+  expect(results.violations, 'today sheet WCAG violations').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await expect(opener).toBeFocused();
+});

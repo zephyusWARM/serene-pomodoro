@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './MorningIntentionModal.css';
 import useDialogFocus from '../hooks/useDialogFocus';
+import { CloseIcon, SparkleIcon } from './Icons';
 
 const DEFAULT_OPTIONS = [
-  { id: 'gentle', label: '🌸 溫柔一點', text: '溫柔一點' },
-  { id: 'honest', label: '💎 誠實一點', text: '誠實一點' },
-  { id: 'peaceful', label: '🌊 平靜一點', text: '平靜一點' },
-  { id: 'focused', label: '🎯 專注一點', text: '專注一點' },
-  { id: 'brave', label: '🦁 勇敢一點', text: '勇敢一點' },
-  { id: 'patient', label: '⏳ 耐心一點', text: '耐心一點' },
+  { id: 'gentle', label: '溫柔一點', text: '溫柔一點' },
+  { id: 'honest', label: '誠實一點', text: '誠實一點' },
+  { id: 'peaceful', label: '平靜一點', text: '平靜一點' },
+  { id: 'focused', label: '專注一點', text: '專注一點' },
+  { id: 'brave', label: '勇敢一點', text: '勇敢一點' },
+  { id: 'patient', label: '耐心一點', text: '耐心一點' },
 ];
 
 function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
@@ -34,27 +35,49 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
   const [confirmed, setConfirmed] = useState(false);
   const timeoutRef = useRef(null);
   const dialogRef = useRef(null);
+  // The intention waiting for the blessing to finish. Saving closes this dialog, so it is held back
+  // until the blessing has been shown; anything that ends the dialog early saves it right away.
+  const pendingRef = useRef(null);
+  const onSaveRef = useRef(onSave);
+  useEffect(() => { onSaveRef.current = onSave; }, [onSave]);
   useDialogFocus(dialogRef, true);
 
-  // Clean up timer on unmount
+  const flushPending = useCallback(() => {
+    const text = pendingRef.current;
+    if (text === null) return false;
+    pendingRef.current = null;
+    clearTimeout(timeoutRef.current);
+    onSaveRef.current(text);
+    return true;
+  }, []);
+
+  // Clean up the timer on unmount; a confirmed intention is never lost if the dialog is hidden mid-blessing.
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      clearTimeout(timeoutRef.current);
+      if (pendingRef.current !== null) {
+        const text = pendingRef.current;
+        pendingRef.current = null;
+        onSaveRef.current(text);
       }
     };
   }, []);
 
-  // Keyboard shortcut: Escape to dismiss
+  // Closing (Esc or the corner button): during the blessing it finishes the save, otherwise it dismisses.
+  const handleClose = useCallback(() => {
+    if (!flushPending()) onDismiss();
+  }, [flushPending, onDismiss]);
+
+  // Keyboard shortcut: Escape to close
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        onDismiss();
+        handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onDismiss]);
+  }, [handleClose]);
 
   const handleSelectPreset = (text) => {
     setSelectedText(text);
@@ -72,42 +95,27 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
     const finalIntention = (selectedText || customText || '溫柔一點').trim();
     if (!finalIntention) return;
 
-    onSave(finalIntention);
+    if (pendingRef.current !== null) return;
     setConfirmed(true);
+    pendingRef.current = finalIntention;
 
-    // Auto-close after subtle blessing feedback
-    timeoutRef.current = setTimeout(() => {
-      onDismiss();
-    }, 1400);
+    // Show the blessing, then save (which also closes the dialog)
+    timeoutRef.current = setTimeout(flushPending, 1400);
   };
 
   return (
-    <div className="morning-modal-card" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="morning-question" tabIndex={-1}>
-      {/* Close button in top-right */}
-      <button
-        type="button"
-        className="morning-close-corner"
-        onClick={onDismiss}
-        title="關閉 (Esc)"
-        aria-label="關閉"
-      >
-        ✕
-      </button>
-
+    <div className="morning-modal-card" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={confirmed ? 'blessing-title' : 'morning-question'} tabIndex={-1}>
       {confirmed ? (
         <div className="morning-blessing-view">
-          <div className="blessing-icon">✨</div>
-          <h3 className="blessing-title">願你帶著這份心意</h3>
+          <SparkleIcon size={30} className="blessing-icon" />
+          <h3 className="blessing-title" id="blessing-title">願你帶著這份心意</h3>
           <p className="blessing-intention">「{selectedText}」</p>
           <p className="blessing-sub">平靜而篤定地度過充實的一天</p>
         </div>
       ) : (
         <>
-          {/* Header / Aura (Draggable in Electron) */}
-          <div className="morning-header">
-            <div className="morning-sun-badge">🌅</div>
-            <span className="morning-tag">晨間心向 · MORNING INTENTION</span>
-          </div>
+          {/* Grabber: the part of the dialog that still drags the window in Electron */}
+          <div className="morning-grabber" />
 
           {/* Core Question */}
           <h2 className="morning-question" id="morning-question">
@@ -142,7 +150,7 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
               type="text"
               aria-label="自訂今日心向"
               className={`custom-intention-input ${isCustom && customText ? 'active' : ''}`}
-              placeholder="✍️ 或寫下自己的心向 (如：包容、放鬆)..."
+              placeholder="或寫下自己的心向，例如：包容、放鬆"
               value={customText}
               onChange={handleCustomChange}
               onKeyDown={(e) => {
@@ -163,7 +171,7 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
               onClick={handleConfirm}
               disabled={!selectedText.trim()}
             >
-              帶著這份心意出發 ✦
+              帶著這份心意出發
             </button>
 
             <button
@@ -176,6 +184,17 @@ function MorningIntentionContent({ currentIntention, onSave, onDismiss }) {
           </div>
         </>
       )}
+
+      {/* Close button in top-right */}
+      <button
+        type="button"
+        className="morning-close-corner"
+        onClick={handleClose}
+        title="關閉 (Esc)"
+        aria-label="關閉"
+      >
+        <CloseIcon size={14} />
+      </button>
     </div>
   );
 }

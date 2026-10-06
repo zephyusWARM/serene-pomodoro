@@ -52,7 +52,7 @@ const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) =>
   return (
     <div className="settings-container" ref={panelRef}>
       <button
-        className="settings-toggle"
+        className="icon-btn settings-toggle"
         ref={toggleRef}
         onClick={() => setIsOpen(!isOpen)}
         aria-label="偏好設定"
@@ -60,7 +60,7 @@ const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) =>
         aria-controls="settings-panel"
         title="偏好設定"
       >
-        <SettingsIcon size={15} />
+        <SettingsIcon size={18} />
       </button>
 
       {isOpen && (
@@ -78,7 +78,7 @@ const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) =>
               className="task-name-input"
               value={settings.taskName || ''}
               onChange={(e) => onUpdate('taskName', e.target.value)}
-              placeholder="SERENE GUARDIAN"
+              placeholder="Serene Guardian"
               maxLength={30}
             />
           </div>
@@ -136,7 +136,7 @@ const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) =>
             ].map(({ key, label, Icon, value, min, max }) => (
               <div className="duration-row" key={key}>
                 <span className="duration-name">
-                  <Icon size={13} className="duration-icon" />
+                  <Icon size={14} className="duration-icon" />
                   {label}
                 </span>
                 <input
@@ -147,6 +147,7 @@ const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) =>
                   min={min}
                   max={max}
                   value={value}
+                  style={{ '--pct': `${((value - min) / (max - min)) * 100}%` }}
                   onChange={(e) => onUpdate(key, Number(e.target.value))}
                 />
                 <span className="duration-value">{value}m</span>
@@ -155,7 +156,7 @@ const Settings = ({ settings, onUpdate, todayIntention, onOpenMorningModal }) =>
           </div>
 
           <div className="setting-info">
-            <SparkleIcon size={12} className="info-icon" />
+            <SparkleIcon size={11} className="info-icon" />
             <span>專注結束後會自動開始休息，螢幕邊緣亮起柔和光暈</span>
           </div>
         </div>

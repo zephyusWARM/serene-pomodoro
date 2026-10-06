@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ShortBreakIcon } from './Icons';
 import './RestOverlay.css';
 
 const REST_QUOTES = [
@@ -50,7 +51,7 @@ function RestOverlayContent({ onComplete }) {
 
       <div className="rest-content">
         {/* Main rest icon */}
-        <div className="rest-main-icon">🌿</div>
+        <ShortBreakIcon size={34} className="rest-main-icon" />
 
         <h2 className="rest-title">休息一下</h2>
 

@@ -1,4 +1,5 @@
-/* ── Morning Intention Modal Overlay ── */
+/* ── Morning intention ──────────────────────────────────────────
+   One question, six words to start from, one way forward. */
 .morning-modal-overlay {
   position: fixed;
   inset: 0;
@@ -6,204 +7,167 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 12%, rgba(255, 185, 120, 0.24) 0%, rgba(12, 22, 38, 0.95) 60%, rgba(5, 10, 18, 0.98) 100%);
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgb(var(--accent-rgb) / 0.2) 0%, transparent 70%),
+    rgb(var(--surface-rgb) / 0.94);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  animation: morningFadeIn 0.5s ease-out forwards;
+  animation: morningFadeIn 0.5s var(--ease) forwards;
   -webkit-app-region: no-drag;
 }
 
 @keyframes morningFadeIn {
-  0% {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-  }
-  100% {
-    opacity: 1;
-    backdrop-filter: blur(24px);
-  }
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
 
-/* ── Modal Card ── */
+/* ── Card ── */
 .morning-modal-card {
   position: relative;
   width: 100%;
   height: 100%;
   max-width: 340px;
   max-height: 480px;
-  padding: 1.25rem 1.25rem 1rem 1.25rem;
+  padding: 0 24px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   text-align: center;
-  box-sizing: border-box;
-  animation: morningCardPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: morningCardPop 0.55s var(--ease) forwards;
 }
 
-/* ── Close Corner Button ── */
+@keyframes morningCardPop {
+  0%   { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.morning-grabber {
+  width: 36px;
+  height: 5px;
+  margin: 10px auto 0;
+  border-radius: 9999px;
+  background: var(--fill-3);
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+}
+
+/* ── Close ── */
 .morning-close-corner {
   position: absolute;
-  top: 10px;
-  right: 12px;
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 0.85rem;
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
+  top: 12px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 0;
   border-radius: 50%;
+  background: transparent;
+  color: var(--ink-3);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  cursor: pointer;
+  transition: background 0.3s var(--ease), color 0.3s var(--ease);
   -webkit-app-region: no-drag;
   z-index: 10;
 }
 
+.morning-close-corner::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+
 .morning-close-corner:hover {
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  background: var(--fill-1);
 }
 
-@keyframes morningCardPop {
-  0% {
-    transform: scale(0.96) translateY(8px);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
-}
-
-/* ── Header ── */
-.morning-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 0.1rem;
-  -webkit-app-region: drag;
-  user-select: none;
-}
-
-.morning-sun-badge {
-  font-size: 1.1rem;
-  filter: drop-shadow(0 0 10px rgba(255, 190, 110, 0.7));
-  animation: sunGlow 3s ease-in-out infinite alternate;
-}
-
-@keyframes sunGlow {
-  0%   { transform: scale(1); filter: drop-shadow(0 0 6px rgba(255, 190, 110, 0.5)); }
-  100% { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(255, 205, 130, 0.9)); }
-}
-
-.morning-tag {
-  font-size: 0.62rem;
-  font-weight: 400;
-  letter-spacing: 0.22em;
-  color: rgba(255, 210, 160, 0.85);
-  text-transform: uppercase;
-}
-
-/* ── Core Question ── */
+/* ── Question ── */
 .morning-question {
-  font-size: 1.28rem;
-  font-weight: 400;
-  line-height: 1.38;
-  letter-spacing: 0.08em;
-  color: #ffffff;
-  margin: 0.35rem 0 0.15rem 0;
-  text-shadow: 0 2px 14px rgba(255, 200, 120, 0.25);
-  font-family: 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+  margin-top: 18px;
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.32;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
 }
 
-/* ── Philosophy Quote ── */
 .morning-quote {
-  font-size: 0.72rem;
-  font-weight: 300;
-  line-height: 1.48;
-  color: rgba(255, 255, 255, 0.62);
-  letter-spacing: 0.04em;
-  margin: 0.1rem 0 0.45rem 0;
-  padding: 0 0.4rem;
+  margin-top: 12px;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--ink-2);
 }
 
-/* ── Presets Grid ── */
+/* ── Presets ── */
 .morning-presets {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 7px;
+  gap: 8px;
   width: 100%;
-  margin: 0.2rem 0;
+  margin-top: 16px;
 }
 
 .preset-chip {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  color: rgba(255, 255, 255, 0.82);
-  font-family: inherit;
-  font-size: 0.76rem;
-  font-weight: 300;
-  letter-spacing: 0.05em;
-  padding: 7px 10px;
+  height: 38px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--fill-1);
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(10px);
+  transition: background 0.3s var(--ease), color 0.3s var(--ease), border-color 0.3s var(--ease), transform 0.3s var(--ease-spring);
 }
 
 .preset-chip:hover {
-  background: rgba(255, 210, 150, 0.15);
-  border-color: rgba(255, 210, 150, 0.35);
-  color: #fff;
-  transform: translateY(-1px);
+  background: var(--fill-2);
+  color: var(--ink);
+}
+
+.preset-chip:active {
+  transform: scale(0.97);
 }
 
 .preset-chip.selected {
-  background: linear-gradient(135deg, rgba(255, 190, 120, 0.28), rgba(255, 140, 90, 0.22));
-  border-color: rgba(255, 205, 140, 0.65);
-  color: #fff;
-  box-shadow: 0 0 14px rgba(255, 190, 110, 0.32);
-  font-weight: 400;
+  background: rgb(var(--accent-rgb) / 0.16);
+  border-color: rgb(var(--accent-rgb) / 0.7);
+  color: var(--ink);
 }
 
-/* ── Custom Input ── */
+/* ── Custom intention ── */
 .morning-custom-box {
   width: 100%;
-  margin: 0.25rem 0 0.4rem 0;
+  margin-top: 8px;
 }
 
 .custom-intention-input {
   width: 100%;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px dashed rgba(255, 255, 255, 0.18);
-  border-radius: 18px;
-  color: #fff;
+  height: 40px;
+  background: var(--fill-1);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--ink);
   font-family: inherit;
-  font-size: 0.74rem;
-  font-weight: 300;
-  padding: 7px 14px;
+  font-size: 0.875rem;
+  padding: 0 14px;
   text-align: center;
   outline: none;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s var(--ease), background 0.3s var(--ease);
 }
 
 .custom-intention-input::placeholder {
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--ink-3);
 }
 
 .custom-intention-input:focus,
 .custom-intention-input.active {
-  background: rgba(255, 255, 255, 0.1);
-  border-style: solid;
-  border-color: rgba(255, 210, 150, 0.55);
-  box-shadow: 0 0 12px rgba(255, 200, 120, 0.22);
+  background: var(--fill-2);
 }
 
 /* ── Actions ── */
@@ -211,57 +175,62 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
-  margin-top: 0.1rem;
+  margin-top: auto;
+  padding-top: 14px;
 }
 
 .morning-confirm-btn {
   width: 100%;
-  background: linear-gradient(135deg, rgba(255, 185, 110, 0.28) 0%, rgba(255, 130, 80, 0.24) 100%);
-  border: 1px solid rgba(255, 200, 130, 0.5);
-  border-radius: 24px;
-  color: rgba(255, 255, 255, 0.95);
-  font-family: inherit;
-  font-size: 0.82rem;
-  font-weight: 400;
-  letter-spacing: 0.15em;
-  padding: 10px 16px;
+  height: 48px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), 0 0 16px rgba(255, 180, 100, 0.18);
-  backdrop-filter: blur(8px);
+  transition: background 0.3s var(--ease), transform 0.3s var(--ease-spring), opacity 0.3s;
 }
 
 .morning-confirm-btn:hover {
-  background: linear-gradient(135deg, rgba(255, 195, 120, 0.4) 0%, rgba(255, 140, 90, 0.35) 100%);
-  border-color: rgba(255, 220, 150, 0.75);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), 0 0 24px rgba(255, 190, 110, 0.3);
-  transform: translateY(-1px);
+  background: var(--cream-hi);
 }
 
 .morning-confirm-btn:active {
   transform: scale(0.98);
 }
 
+.morning-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .morning-skip-btn {
+  position: relative;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
   background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.4);
-  font-family: inherit;
-  font-size: 0.68rem;
-  font-weight: 300;
-  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  font-size: 0.8125rem;
+  font-weight: 500;
   cursor: pointer;
-  padding: 4px 8px;
-  transition: color 0.25s ease;
+  transition: color 0.3s var(--ease);
+}
+
+.morning-skip-btn::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
 }
 
 .morning-skip-btn:hover {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--ink);
 }
 
-/* ── Blessing View ── */
+/* ── Blessing ── */
 .morning-blessing-view {
   display: flex;
   flex-direction: column;
@@ -269,48 +238,37 @@
   justify-content: center;
   height: 100%;
   gap: 12px;
-  animation: blessingReveal 0.6s ease-out forwards;
+  animation: blessingReveal 0.7s var(--ease) forwards;
 }
 
 @keyframes blessingReveal {
-  0% {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0%   { transform: scale(0.94); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .blessing-icon {
-  font-size: 2.6rem;
-  filter: drop-shadow(0 0 16px rgba(255, 215, 120, 0.7));
-  animation: sunGlow 1.5s ease-in-out infinite alternate;
+  color: var(--accent);
 }
 
 .blessing-title {
-  font-size: 0.88rem;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.65);
-  letter-spacing: 0.18em;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-2);
   margin: 0;
 }
 
 .blessing-intention {
-  font-size: 1.5rem;
-  font-weight: 400;
-  color: #fff;
-  letter-spacing: 0.12em;
-  text-shadow: 0 0 20px rgba(255, 195, 120, 0.6);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
   margin: 0;
-  font-family: 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
 }
 
 .blessing-sub {
-  font-size: 0.74rem;
-  font-weight: 300;
-  color: rgba(255, 210, 160, 0.75);
-  letter-spacing: 0.08em;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
   margin: 0;
 }

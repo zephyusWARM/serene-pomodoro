@@ -6,11 +6,20 @@
     <title>20-20-20 護眼提醒</title>
     <style>
         @font-face {
-          font-family: 'Inter';
+          font-family: 'Nunito';
           font-style: normal;
           font-weight: 100 900;
           font-display: swap;
-          src: url('fonts/InterVariable-latin.woff2') format('woff2');
+          src: url('fonts/NunitoVariable-latin.woff2') format('woff2');
+        }
+
+        :root {
+            --ink: #f8efe3;
+            --ink-2: #dccfbe;
+            --ink-3: #b8aa98;
+            --accent-rgb: 142 201 163; /* rest green: look away, the same colour as a break */
+            --accent: rgb(var(--accent-rgb));
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -19,7 +28,9 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: 'Inter', 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+            font-family: 'Nunito', 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+            font-variant-numeric: tabular-nums;
+            -webkit-font-smoothing: antialiased;
             background: transparent;
             cursor: default;
             user-select: none;
@@ -28,67 +39,50 @@
             align-items: center;
         }
 
+        /* A notification, not a dialog: one row, one glance. */
         .reminder-card {
-            width: 320px;
-            padding: 18px 28px;
+            width: 328px;
+            padding: 16px 20px 16px 16px;
             border-radius: 24px;
-            background: rgba(15, 25, 40, 0.85);
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow:
-                0 20px 60px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-                0 0 40px rgba(100, 200, 255, 0.08);
+            background: rgb(40 30 25 / 0.94);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgb(255 236 210 / 0.1);
+            box-shadow: 0 18px 48px rgb(20 9 3 / 0.45);
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 10px;
-            animation: slideIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .reminder-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.4), transparent);
+            gap: 16px;
+            animation: slideIn 0.8s var(--ease) both;
         }
 
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            from { opacity: 0; transform: translateY(16px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .fade-out {
-            animation: slideOut 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+            animation: slideOut 0.6s var(--ease) both;
         }
 
         @keyframes slideOut {
-            to {
-                opacity: 0;
-                transform: translateY(10px) scale(0.97);
-            }
+            to { opacity: 0; transform: translateY(8px) scale(0.98); }
         }
 
-        /* ── Eye Icon with Ring ── */
+        @media (prefers-reduced-motion: reduce) {
+            .reminder-card, .fade-out { animation: none; }
+            .ring-progress { transition: none; }
+        }
+
+        /* ── Ring with the eye ── */
         .eye-ring {
             position: relative;
+            flex-shrink: 0;
             width: 64px;
             height: 64px;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--ink);
         }
 
         .ring-svg {
@@ -99,82 +93,95 @@
 
         .ring-bg {
             fill: none;
-            stroke: rgba(255, 255, 255, 0.08);
-            stroke-width: 2;
+            stroke: rgb(255 236 210 / 0.12);
+            stroke-width: 3;
         }
 
         .ring-progress {
             fill: none;
-            stroke: rgba(100, 200, 255, 0.8);
-            stroke-width: 2;
+            stroke: var(--accent);
+            stroke-width: 3;
             stroke-linecap: round;
             stroke-dasharray: 188.5; /* 2 * PI * 30 */
             stroke-dashoffset: 0;
-            transition: stroke-dashoffset 1s linear;
-            filter: drop-shadow(0 0 4px rgba(100, 200, 255, 0.4));
+            transition: stroke-dashoffset 1s linear, stroke 0.6s var(--ease);
         }
 
         .eye-icon {
-            font-size: 28px;
-            filter: drop-shadow(0 2px 8px rgba(100, 200, 255, 0.3));
-            animation: eyePulse 3s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        @keyframes eyePulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+        .eye-icon svg {
+            display: block;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         /* ── Text ── */
+        .reminder-text {
+            min-width: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
         .reminder-title {
-            color: rgba(255, 255, 255, 0.95);
-            font-size: 1.05rem;
-            font-weight: 300;
-            letter-spacing: 0.15em;
-            text-align: center;
+            color: var(--ink);
+            font-size: 1.0625rem;
+            font-weight: 600;
+            letter-spacing: -0.005em;
+        }
+
+        .reminder-meta {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
         }
 
         .reminder-sub {
-            color: rgba(100, 200, 255, 0.7);
-            font-size: 0.8rem;
-            font-weight: 300;
-            letter-spacing: 0.12em;
-            text-align: center;
+            color: var(--ink-2);
+            font-size: 0.8125rem;
         }
 
         .countdown-text {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.75rem;
-            font-weight: 200;
-            letter-spacing: 0.1em;
-            font-variant-numeric: tabular-nums;
+            color: var(--accent);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            min-width: 2.5ch;
+            text-align: right;
         }
 
-        /* ── Completion State ── */
-        .complete .eye-icon {
-            animation: none;
-        }
-        .complete .reminder-title {
-            color: rgba(100, 230, 160, 0.95);
-        }
+        /* ── Completion state ── */
         .complete .ring-progress {
-            stroke: rgba(100, 230, 160, 0.8);
-            filter: drop-shadow(0 0 4px rgba(100, 230, 160, 0.4));
+            stroke-dashoffset: 0 !important;
         }
     </style>
 </head>
 <body>
-    <div class="reminder-card" id="card">
+    <div class="reminder-card" id="card" role="status">
         <div class="eye-ring">
-            <svg class="ring-svg" width="64" height="64" viewBox="0 0 72 72">
+            <svg class="ring-svg" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
                 <circle class="ring-bg" cx="36" cy="36" r="30"/>
                 <circle class="ring-progress" cx="36" cy="36" r="30" id="ringProgress"/>
             </svg>
-            <div class="eye-icon" id="eyeIcon">👁️</div>
+            <div class="eye-icon" id="eyeIcon" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
         </div>
-        <div class="reminder-title" id="title">看向遠方 20 秒</div>
-        <div class="reminder-sub">讓眼睛休息一下</div>
-        <div class="countdown-text" id="countdown">20s</div>
+        <div class="reminder-text">
+            <div class="reminder-title" id="title">看向遠方 20 秒</div>
+            <div class="reminder-meta">
+                <div class="reminder-sub">讓眼睛休息一下</div>
+                <div class="countdown-text" id="countdown">20s</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -186,15 +193,17 @@
         const titleEl = document.getElementById('title');
         const eyeIcon = document.getElementById('eyeIcon');
 
+        const CHECK_ICON = '<svg width="26" height="26" viewBox="0 0 24 24" style="stroke-width:2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
         let remaining = DURATION;
 
         const interval = setInterval(() => {
             remaining--;
-            
+
             // Update ring progress (counting down)
             const progress = remaining / DURATION;
             ring.style.strokeDashoffset = CIRC * (1 - progress);
-            
+
             // Update countdown text
             countdownEl.textContent = `${remaining}s`;
 
@@ -202,8 +211,8 @@
                 clearInterval(interval);
                 // Show completion
                 card.classList.add('complete');
-                titleEl.textContent = '做得好 ✨';
-                eyeIcon.textContent = '✅';
+                titleEl.textContent = '做得好';
+                eyeIcon.innerHTML = CHECK_ICON;
                 countdownEl.textContent = '';
 
                 // Fade out after 2 seconds

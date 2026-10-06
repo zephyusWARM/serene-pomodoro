@@ -10,6 +10,39 @@ let eyeReminderWindow = null;
 let breakGlowWindows = [];
 let tray = null;
 
+// The widget has two shapes: the full 340x480 card and a 248x64 "island" capsule.
+// Island mode is session state only: a fresh launch, or a reload of the renderer, is always the full card.
+const WIDGET_SIZE = { width: 340, height: 480 };
+const ISLAND_SIZE = { width: 248, height: 64 };
+let widgetIsIsland = false;
+
+// Resize the main window between the two shapes in place: the horizontal centre and the top edge stay
+// where they are, and the result is kept fully inside the display it is on.
+function setWidgetShape(island) {
+    if (!mainWindow || mainWindow.isDestroyed()) return false;
+    if (island === widgetIsIsland) return widgetIsIsland;
+
+    const current = mainWindow.getBounds();
+    const target = island ? ISLAND_SIZE : WIDGET_SIZE;
+    const area = screen.getDisplayMatching(current).workArea;
+    const x = Math.round(current.x + (current.width - target.width) / 2);
+    const bounds = {
+        x: Math.min(Math.max(x, area.x), Math.max(area.x, area.x + area.width - target.width)),
+        y: Math.min(Math.max(current.y, area.y), Math.max(area.y, area.y + area.height - target.height)),
+        ...target,
+    };
+
+    // Some platforms (Linux window managers) ignore programmatic resizes of a non-resizable window.
+    const liftResizable = process.platform === 'linux' && !mainWindow.isResizable();
+    if (liftResizable) mainWindow.setResizable(true);
+    mainWindow.setBounds(bounds);
+    if (liftResizable) mainWindow.setResizable(false);
+
+    widgetIsIsland = island;
+    mainWindow.setAlwaysOnTop(true, 'floating');
+    return widgetIsIsland;
+}
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 340,
@@ -51,7 +84,11 @@ function createWindow() {
         mainWindow.webContents.send('window-visibility', mainWindow.isVisible() && !mainWindow.isMinimized());
     };
     ['show', 'hide', 'minimize', 'restore'].forEach((event) => mainWindow.on(event, sendVisibility));
-    mainWindow.webContents.on('did-finish-load', sendVisibility);
+    mainWindow.webContents.on('did-finish-load', () => {
+        sendVisibility();
+        // A (re)loaded renderer starts as the full card, so the window must not stay an island.
+        if (widgetIsIsland) setWidgetShape(false);
+    });
 
     // 攔截關閉事件，改為隱藏到系統列
     mainWindow.on('close', (event) => {
@@ -85,11 +122,11 @@ function refreshTrayMenu() {
 
     let tooltip = 'Serene Guardian (靜謐守護者)';
     if (currentTrayStatus.timeText) {
-        const modeEmoji = currentTrayStatus.mode === 'focus' ? '🍅' : (currentTrayStatus.mode === 'shortBreak' ? '🌿' : '🌙');
-        tooltip = `${modeEmoji} ${currentTrayStatus.timeText} · Serene Guardian`;
+        const modeName = currentTrayStatus.mode === 'focus' ? '專注' : (currentTrayStatus.mode === 'shortBreak' ? '短休息' : '長休息');
+        tooltip = `${modeName} ${currentTrayStatus.timeText} · Serene Guardian`;
     }
     if (currentTrayStatus.intentionText) {
-        tooltip += `\n✨ ${currentTrayStatus.intentionText}`;
+        tooltip += `\n今日心向：${currentTrayStatus.intentionText}`;
     }
     if (tooltip !== lastTooltip) {
         try {
@@ -105,11 +142,11 @@ function refreshTrayMenu() {
 
 function buildTrayMenu() {
     const modeLabels = {
-        focus: '🍅 專注時段',
-        shortBreak: '🌿 短休息',
-        longBreak: '🌙 長休息',
+        focus: '專注時段',
+        shortBreak: '短休息',
+        longBreak: '長休息',
     };
-    const currentModeLabel = modeLabels[currentTrayStatus.mode] || '🍅 專注時段';
+    const currentModeLabel = modeLabels[currentTrayStatus.mode] || '專注時段';
 
     const menuItems = [];
 
@@ -123,7 +160,7 @@ function buildTrayMenu() {
 
     if (currentTrayStatus.intentionText) {
         menuItems.push({
-            label: `✨ 今日心向：${currentTrayStatus.intentionText}`,
+            label: `今日心向：${currentTrayStatus.intentionText}`,
             click: () => {
                 if (mainWindow) {
                     mainWindow.show();
@@ -140,7 +177,7 @@ function buildTrayMenu() {
 
     // Quick action: Start / Pause
     menuItems.push({
-        label: currentTrayStatus.isRunning ? '⏸ 暫停計時' : '▶ 開始計時',
+        label: currentTrayStatus.isRunning ? '暫停計時' : '開始計時',
         click: () => {
             if (mainWindow) {
                 mainWindow.webContents.send('tray-toggle-timer');
@@ -149,7 +186,7 @@ function buildTrayMenu() {
     });
 
     menuItems.push({
-        label: '↺ 重設計時',
+        label: '重設計時',
         click: () => {
             if (mainWindow) {
                 mainWindow.webContents.send('tray-reset-timer');
@@ -161,7 +198,7 @@ function buildTrayMenu() {
 
     const isWindowVisible = mainWindow && mainWindow.isVisible();
     menuItems.push({
-        label: isWindowVisible ? '⬇ 隱藏至系統列' : '⬆ 顯示主視窗',
+        label: isWindowVisible ? '隱藏至系統列' : '顯示主視窗',
         click: () => {
             if (mainWindow) {
                 if (mainWindow.isVisible()) {
@@ -264,7 +301,7 @@ function createOverlayWindow(mode, skipCount = 0) {
             nodeIntegration: false,
             contextIsolation: true,
         },
-        backgroundColor: '#0f2027',
+        backgroundColor: '#0b0b0e',
     });
 
     overlayWindow.setAlwaysOnTop(true, 'screen-saver');
@@ -515,6 +552,10 @@ ipcMain.handle('overlay-action', (event, action) => {
     if (mainWindow) {
         mainWindow.webContents.send('overlay-action', action);
     }
+});
+
+ipcMain.handle('set-compact', (event, island) => {
+    return setWidgetShape(island === true);
 });
 
 ipcMain.handle('hide-window', () => {

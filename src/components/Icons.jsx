@@ -221,6 +221,53 @@ export const CafeIcon = ({ size = 15, className = '' }) => (
   </svg>
 );
 
+const lineProps = {
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: '1.8',
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+};
+
+/** A capsule with a dot: collapses the widget into the island. */
+export const IslandIcon = ({ size = 16, className = '' }) => (
+  <svg width={size} height={size} {...lineProps} className={`svg-icon ${className}`}>
+    <rect x="2.5" y="8" width="19" height="8" rx="4" />
+    <circle cx="7.5" cy="12" r="1.3" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+/** Two corners pulling apart: expands the island back into the full widget. */
+export const ExpandIcon = ({ size = 16, className = '' }) => (
+  <svg width={size} height={size} {...lineProps} className={`svg-icon ${className}`}>
+    <path d="M14 4h6v6" />
+    <path d="M10 20H4v-6" />
+    <path d="M20 4l-7 7" />
+    <path d="M4 20l7-7" />
+  </svg>
+);
+
+export const CloseIcon = ({ size = 14, className = '' }) => (
+  <svg width={size} height={size} {...lineProps} strokeWidth="2" className={`svg-icon ${className}`}>
+    <path d="M6 6l12 12" />
+    <path d="M18 6L6 18" />
+  </svg>
+);
+
+export const EyeIcon = ({ size = 28, className = '' }) => (
+  <svg width={size} height={size} {...lineProps} className={`svg-icon ${className}`}>
+    <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+export const CheckIcon = ({ size = 28, className = '' }) => (
+  <svg width={size} height={size} {...lineProps} strokeWidth="2" className={`svg-icon ${className}`}>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+);
+
 export const MiniEqualizer = () => (
   <span className="mini-equalizer">
     <span className="bar bar-1" />

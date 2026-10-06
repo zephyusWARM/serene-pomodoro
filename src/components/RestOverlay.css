@@ -1,146 +1,97 @@
-/* ── Rest Overlay (Forced Fullscreen) ── */
+/* Web fallback only: the Electron app uses the native overlay window instead. */
 .rest-overlay {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: 160;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(10, 30, 35, 0.95) 0%,
-    rgba(5, 10, 15, 0.98) 100%
-  );
-  animation: restFadeIn 0.8s ease-out forwards;
+  background: rgb(var(--surface-rgb) / 0.9);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  animation: restFade 0.6s var(--ease) both;
   -webkit-app-region: no-drag;
-  /* Prevent any interaction escape */
-  cursor: default;
-  user-select: none;
 }
 
-@keyframes restFadeIn {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
+@keyframes restFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-/* ── Breathing Circle (Background) ── */
+/* One soft pool of light that slowly breathes behind the text. */
 .rest-breathing-circle {
   position: absolute;
-  width: 300px;
-  height: 300px;
+  width: 260px;
+  height: 260px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(180, 240, 240, 0.08) 0%,
-    rgba(180, 240, 240, 0.02) 50%,
-    transparent 70%
-  );
-  animation: breathe 4s ease-in-out infinite;
-  filter: blur(20px);
+  background: radial-gradient(closest-side, rgb(var(--accent-rgb) / 0.28), transparent);
+  animation: restBreathe 8s ease-in-out infinite alternate;
 }
 
-@keyframes breathe {
-  0%, 100% {
-    transform: scale(0.8);
-    opacity: 0.4;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.8;
-  }
+@keyframes restBreathe {
+  from { transform: scale(0.85); }
+  to   { transform: scale(1.12); }
 }
 
-/* ── Content ── */
 .rest-content {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.2rem;
+  gap: 10px;
+  padding: 0 28px;
   text-align: center;
-  max-width: 360px;
-  padding: 2rem;
 }
 
-/* ── Main Icon ── */
 .rest-main-icon {
-  font-size: 3rem;
-  animation: restIconFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.4));
+  color: var(--accent);
+  margin-bottom: 4px;
 }
 
-@keyframes restIconFloat {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-8px); }
-}
-
-/* ── Title ── */
 .rest-title {
-  font-size: 1.6rem;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.9);
-  letter-spacing: 0.3em;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
   margin: 0;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
-  animation: textSlideUpRest 0.7s ease-out 0.3s both;
 }
 
-@keyframes textSlideUpRest {
-  0%   { transform: translateY(12px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-
-/* ── Quote ── */
 .rest-quote {
-  animation: textSlideUpRest 0.7s ease-out 0.5s both;
+  margin-top: 6px;
+  max-width: 24ch;
 }
 
 .rest-quote-text {
-  font-size: 0.85rem;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.65);
-  font-style: italic;
-  letter-spacing: 0.05em;
-  line-height: 1.6;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink);
   margin: 0;
 }
 
 .rest-quote-author {
-  font-size: 0.7rem;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.35);
-  letter-spacing: 0.1em;
-  margin: 0.4rem 0 0 0;
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-3);
 }
 
-/* ── Progress Bar ── */
 .rest-progress-container {
-  width: 180px;
+  width: 140px;
   height: 3px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+  margin-top: 16px;
+  border-radius: 9999px;
+  background: var(--fill-2);
   overflow: hidden;
-  animation: textSlideUpRest 0.7s ease-out 0.7s both;
 }
 
 .rest-progress-bar {
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(180, 240, 240, 0.6),
-    rgba(180, 240, 240, 0.9)
-  );
-  border-radius: 2px;
+  border-radius: inherit;
+  background: var(--accent);
   transition: width 1s linear;
-  box-shadow: 0 0 8px rgba(180, 240, 240, 0.3);
 }
 
-/* ── Countdown Text ── */
 .rest-countdown-text {
-  font-size: 0.7rem;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 0.15em;
+  font-size: 0.75rem;
+  color: var(--ink-3);
   margin: 0;
-  animation: textSlideUpRest 0.7s ease-out 0.9s both;
 }
